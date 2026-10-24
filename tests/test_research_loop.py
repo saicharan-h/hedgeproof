@@ -91,3 +91,46 @@ def test_unexpected_error_halts_the_run_with_its_reason():
 def test_code_version_names_the_checked_out_commit():
     head = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=REPO_ROOT, capture_output=True, text=True, check=True).stdout.strip()
     assert code_version().startswith(head)
+
+
+def test_model_refusal_reason_is_kept_in_the_halt():
+    from hedgeproof.agents.llm import ModelCallError
+
+    def refused(state):
+        raise ModelCallError("rejected", "request rejected: BadRequestError 400: tools.4: schema not supported")
+
+    out = Workflow(_ctx())._guard(refused)({})
+    assert out["status"] == "HALT" and "BadRequestError 400: tools.4: schema not supported" in out["reason"]
+
+
+def test_smoke_reproduces_the_research_request_and_isolates_the_refused_feature(tmp_path, monkeypatch, capsys):
+    """Small probes pass, the research-shaped request is refused, and the variant that passes is named."""
+    import json as _json
+    from types import SimpleNamespace
+
+    import anthropic
+    import httpx2
+
+    import hedgeproof.agents.cli as cli
+    from hedgeproof.agents.spend import SpendController
+    from hedgeproof.config import load_settings
+
+    def handler(request):
+        body = _json.loads(request.content)
+        if any("cache_control" in b for b in body["system"]):  # this fake provider refuses prompt caching
+            return httpx2.Response(400, json={"type": "error", "error": {"type": "invalid_request_error", "message": "cache_control not supported"}})
+        return httpx2.Response(200, json={"id": "m", "type": "message", "role": "assistant", "model": body["model"],
+                                          "content": [{"type": "text", "text": "ok"}], "stop_reason": "end_turn", "stop_sequence": None,
+                                          "usage": {"input_tokens": 50, "output_tokens": 5}})
+
+    real_anthropic = anthropic.Anthropic
+    monkeypatch.setattr(anthropic, "Anthropic", lambda **kw: real_anthropic(**kw, http_client=anthropic.DefaultHttpxClient(transport=httpx2.MockTransport(handler))))
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-openrouter-key-not-real")
+    monkeypatch.setattr(cli, "_spend", lambda: SpendController(tmp_path / "spend.db", load_settings().runtime))
+    import httpx
+    monkeypatch.setattr(httpx, "get", lambda *a, **k: (_ for _ in ()).throw(httpx.ConnectError("offline in tests")))
+    cli.cmd_smoke(SimpleNamespace(model=None))
+    out = capsys.readouterr().out
+    assert "2 strict tool + effort: OK" in out
+    assert "6 research request as a run sends it: FAILED" in out and "cache_control not supported" in out
+    assert "accepted with: ['9 same, no prompt caching']" in out

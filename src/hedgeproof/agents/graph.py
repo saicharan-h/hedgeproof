@@ -101,7 +101,7 @@ class Workflow:
             except BudgetExhausted as e:
                 return {"status": "BUDGET_EXHAUSTED", "reason": f"{e.reason}: {json.dumps(e.detail)[:200]}"}
             except ModelCallError as e:
-                return {"status": "HALT", "reason": f"model call failed ({e.kind}){' - reservation kept as uncertain' if e.uncertain else ''}"}
+                return {"status": "HALT", "reason": f"model call failed ({e.kind}){' - reservation kept as uncertain' if e.uncertain else ''}: {str(e)[:300]}"}
             except RoleError as e:
                 return {"status": "HALT", "reason": str(e)}
             except ServiceError as e:
