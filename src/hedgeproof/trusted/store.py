@@ -130,6 +130,12 @@ class Store:
         with self._lock:
             self._conn.close()
 
+    def __del__(self) -> None:
+        try:
+            self.close()
+        except Exception:  # noqa: BLE001
+            pass
+
     @contextmanager
     def tx(self) -> Iterator[sqlite3.Connection]:
         """One write transaction (serialized; BEGIN IMMEDIATE takes the write lock)."""

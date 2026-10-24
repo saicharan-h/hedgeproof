@@ -100,7 +100,7 @@ test and stays within the agency's rules.
 * **Scenario (FIXTURE):** {policy['agency']['label']}, **{policy['forecast_gallons']:,} gallons per month** (declared input, not agency data).
 * **Policy v1:** NY Harbor ULSD futures (HO, 42,000 gal each); at most **75% of forecast = {policy['n_cap']} contracts**;
   never net short; one-month holding; cash stress (25% fall) at most **$250,000**; a human approves the exact order.
-* **Data:** EIA Gulf Coast diesel spot (fuel price proxy) and NY Harbor futures. Historical paper replay only; EIA futures end 5 Apr 2024.
+* **Data:** EIA Gulf Coast diesel spot (fuel price proxy) and NY Harbor futures. Historical paper replay only; EIA futures end 5 Apr 2024. (Illustrative U.S. public data; fictional agency is styled on an Indian city bus operator. Not a validated Indian deployment.)
 """
     )
 

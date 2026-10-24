@@ -30,7 +30,7 @@ def _ctx(env: Env, lineage: str) -> RunContext:
 
 
 def test_research_workflow_repairs_then_freezes():
-    with tempfile.TemporaryDirectory() as d:
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as d:
         env = Env(Path(d), sandbox=SB)
         wf = Workflow(_ctx(env, "TEST-WF"))
         state = wf.run("research")
@@ -49,7 +49,7 @@ def test_research_workflow_repairs_then_freezes():
 
 
 def test_execution_workflow_waits_for_human_then_reconciles_lost_ack():
-    with tempfile.TemporaryDirectory() as d:
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as d:
         env = Env(Path(d), sandbox=SB)
         env.core.run_backtest("TEST-EX", "development", template="ols36", actor="trusted")
         ctx = _ctx(env, "TEST-EX")

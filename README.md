@@ -14,6 +14,8 @@ Not recorded yet. The Google Drive link will be added here after recording (see 
 
 A city bus agency buys diesel every month but fixes its fuel budget months earlier, so a price spike lands on service budgets. Transit agencies already hedge this with futures (MTA's October 2025 Fuel Hedge Program Report describes hedging 50% of its next 12 months of projected diesel). The target user is a **transit-agency treasury analyst** preparing a fuel-budget recommendation for a finance committee. The hard question: does a proposed hedge really offset the agency's own price exposure, survive an honest test, and stay inside the agency's mandate? A persuasive AI explanation is not enough: a future-data leak, the wrong futures contract or an oversized position can make an attractive backtest unsafe to act on.
 
+> **Indian context (hackathon framing):** the fictional agency is styled on an Indian city bus operator (for example BMTC, Bengaluru). The underlying market data is U.S. public EIA data used as an illustrative proxy only; this is not a validated deployment for any real Indian (or other) transit agency and no Indian market data is used or claimed. See the Limitations section.
+
 ## What HedgeProof does
 
 - **AI agents research the hedge** (five bounded roles): Research proposes an estimator from data profiles and cited sources; Coder writes the estimator, runs it in a locked-down sandbox and repairs failed tests; Critique runs diagnostics and decides to revise, reject, advance or stop; Risk explains gate failures and proposes a compliant size; Execution submits an approved paper order and reconciles a lost acknowledgement before any retry.

@@ -4,7 +4,7 @@ Read this first after any context reset, then `docs/BUILD_STATE.md`. Do not rest
 
 ## What this is
 
-HedgeProof (team Signal Syndicate, ChronoForge 2026, Agentic AI track). AI agents research a diesel fuel hedge for a fictional city bus agency; trusted code computes every number and enforces the agency's policy; a human approves the exact proposal before a simulated paper order can proceed. Core mechanism: the Mandate-Bound Evidence Gate (rules G01 to G12).
+HedgeProof (team Signal Syndicate, ChronoForge 2026, Agentic AI track). AI agents research a diesel fuel hedge for a fictional city bus agency (styled on an Indian city bus operator for hackathon context; underlying market data is U.S. public EIA data used as an illustrative proxy); trusted code computes every number and enforces the agency's policy; a human approves the exact proposal before a simulated paper order can proceed. Core mechanism: the Mandate-Bound Evidence Gate (rules G01 to G12).
 
 Authority: (1) organizer rules and the team's latest facts, (2) `docs/planning/Submission.pdf`, (3) the planning documents in `docs/planning/`. Current overrides are in `docs/DECISIONS.md` (D-017 onward).
 
