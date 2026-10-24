@@ -1,0 +1,12 @@
+# Declared agency scenario (FIXTURE, not real agency data).
+#
+# HedgeProof's MVP needs no personal or agency records: one fictional agency,
+# one declared monthly diesel forecast. The historical example uses U.S. public
+# market data; it is not a validated deployment for any real (for example
+# Indian) transit agency.
+
+label = "Fixture: mid-size city bus agency"
+data_label = "FIXTURE"
+forecast_gallons_per_month = 420000
+currency = "USD"
+note = "Declared scenario input chosen for the demonstration. Not agency data, not a forecast."

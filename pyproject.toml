@@ -1,0 +1,39 @@
+[project]
+name = "hedgeproof"
+version = "0.1.0"
+description = "Protect city bus budgets with verifiable AI hedge research (ChronoForge 2026 prototype)."
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+authors = [{ name = "Signal Syndicate" }]
+dependencies = [
+    "anthropic>=2.3.0",
+    "langgraph>=1.2.17",
+    "pydantic>=2.14.1",
+    "fastapi>=0.162.0",
+    "uvicorn>=0.54.0",
+    "httpx>=0.28.1",
+    "streamlit>=1.66.1",
+    "numpy>=2.5.4",
+    "pandas>=3.1.0",
+    "xlrd>=2.0.2",
+]
+
+[project.scripts]
+hedgeproof = "hedgeproof.cli:main"
+
+[dependency-groups]
+dev = ["pytest>=9.1.1"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/hedgeproof"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "docker: needs a running Docker daemon and the hedgeproof-sandbox image",
+    "realdata: needs the committed EIA raw files in data/raw/",
+]
