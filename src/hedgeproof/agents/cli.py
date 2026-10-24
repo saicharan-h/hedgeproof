@@ -9,7 +9,7 @@ import subprocess
 import sys
 from contextlib import ExitStack
 
-from hedgeproof.config import REPO_ROOT, RESULTS_DIR, VAR_DIR, load_settings
+from hedgeproof.config import REPO_ROOT, VAR_DIR, load_settings
 from hedgeproof.records import new_id, utc_now
 
 
@@ -76,8 +76,9 @@ def cmd_run(args: argparse.Namespace) -> None:
         trace = wf.trace(args.workflow, state, started)
         trace.update({"code_version": code_version(), "provider": rt["provider"]["name"] if args.agents == "live" else None,
                       "effort": (args.effort or rt["models"]["effort"]) if args.agents == "live" else None})
-        out_dir = RESULTS_DIR / "runs" if args.agents == "live" else VAR_DIR / "runs"
-        path = save_trace(trace, out_dir)
+        # Traces stay local (var/runs, untracked); a published copy goes to results/runs/ by commit, so a
+        # local trace never blocks `git pull` of the committed one.
+        path = save_trace(trace, VAR_DIR / "runs")
         print(f"\nRESULT: {state.get('status')} · {state.get('reason', '')}")
         print(f"model calls {ctx.calls} · tokens in {ctx.input_tokens} out {ctx.output_tokens} · measured cost ${ctx.cost_usd:.4f} · trace {path}")
         if spend is not None:
