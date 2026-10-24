@@ -1,6 +1,6 @@
 # HedgeProof build state
 
-Updated: Sat 24 Oct 2026, 1:08 PM IST. Labels: PLANNED, IMPLEMENTED, VERIFIED (command output or inspected file), BLOCKED, DEFERRED.
+Updated: Sat 24 Oct 2026, 1:37 PM IST. Labels: PLANNED, IMPLEMENTED, VERIFIED (command output or inspected file), BLOCKED, DEFERRED.
 
 ## Event facts
 
@@ -11,15 +11,16 @@ Updated: Sat 24 Oct 2026, 1:08 PM IST. Labels: PLANNED, IMPLEMENTED, VERIFIED (c
 ## Branch and commits
 
 - Working branch: `claude/wonderful-keller-enn1fn`; integrates into `main` by pull request (D-019).
-- PR #1 (prototype) merged 12:06 IST (`0b6025c`). Nikshep pushed `ce4af55` directly to `main` at 12:40 IST (Indian-context framing kept; test workaround replaced, D-030). PR #2 (Windows connection fix) merged (`4b6c66c`).
-- Real EIA data, real-data checks and development baselines: on the branch for PR #3.
+- PRs #1, #2 and #3 are merged. Around 1:10 PM IST `main` and this branch were **force-pushed with rewritten history**: Claude-authored commits now show Nikshep as author (D-036). The original commits are kept locally in `backup/original-claude-history` (not pushed).
+- Nikshep's commits on `main`: `102f55e` (Indian scenario on SYNTHETIC-INDIA data, validators, Vercel showcase, OpenAI-format OpenRouter client, docs) and `234e927` (closes DB handles in his tests).
+- On the branch for PR #4: OpenRouter provider for the agent workflow (D-034), Vercel showcase hardening (D-035), docs.
 
 ## Environment facts
 
 | Item | Status |
 |---|---|
 | Cloud session: Python 3.12.3, uv 0.11.32, Docker 29.9.2 daemon, image `hedgeproof-sandbox:1` built | VERIFIED (cloud container) |
-| Cloud network: PyPI and Docker Hub reachable; `www.eia.gov` blocked (proxy 403); sandbox build needs the proxy CA as a BuildKit secret here (`HEDGEPROOF_EXTRA_CA`), not on the laptop | VERIFIED |
+| Cloud network: PyPI and Docker Hub reachable; `www.eia.gov` and `openrouter.ai` blocked (proxy 403), so live model calls run only on the demo laptop; sandbox build needs the proxy CA as a BuildKit secret here (`HEDGEPROOF_EXTRA_CA`), not on the laptop | VERIFIED |
 | Demo laptop (Windows 11): WSL, Docker Desktop 29.9.2, checks A/B/C, Git, uv, Python 3.12.15 | Reported PASSED by Saicharan |
 | Demo laptop: `uv sync` and `uv run hedgeproof sandbox-build` | Reported PASSED by Saicharan (12:45 IST) |
 | Demo laptop: `uv run pytest -q` | PR #1 code: 24 failed, 32 passed (WinError 32). After PR #2: **64 passed**, reported by Saicharan (~1:00 PM IST). Real-data tests (PR #3) not yet run there |
@@ -60,25 +61,29 @@ Updated: Sat 24 Oct 2026, 1:08 PM IST. Labels: PLANNED, IMPLEMENTED, VERIFIED (c
 | Claude client (live) | IMPLEMENTED; **not yet exercised** (no API key or funding) | — |
 | Five-role LangGraph workflow | IMPLEMENTED, VERIFIED with the labelled scripted test double (synthetic and real data) | `tests/test_workflow.py`; rehearsal run above |
 | Dashboard | IMPLEMENTED, VERIFIED in headless Chromium on real data (no exceptions) | screenshots in the cloud session |
-| Model-dependent trials (E1-E3, single-agent, fixed script) | PLANNED (needs API funding) | |
+| OpenRouter provider (Anthropic SDK + base URL, key as Bearer, price check, feature probes) | IMPLEMENTED, VERIFIED offline (mock transport); live smoke test pending on the laptop | `tests/test_claude_client.py` |
+| Indian scenario (Nikshep): configs, loader, SYNTHETIC-INDIA market, tests | IMPLEMENTED on synthetic data only (no Indian market data files exist) | `tests/test_india*.py` |
+| Vercel showcase (Nikshep), hardened | IMPLEMENTED; deployment status unknown | `docs/VERCEL_DEPLOYMENT.md` |
+| Model-dependent trials (E1-E3, single-agent, fixed script) | PLANNED (needs the OpenRouter key on the laptop) | |
 | GASB-informed diagnostic (stretch) | DEFERRED | |
 
 ## Tests
 
-- `uv run pytest -q`: **71 passed** in the cloud container (24 Oct, about 1:05 PM IST): 64 previous plus 7 real-data checks, with the Windows-like file-locking guard active. No API calls.
+- `uv run pytest -q`: **136 passed** in the cloud container (24 Oct, about 1:35 PM IST), including Nikshep's Indian-scenario and validator tests, the Docker sandbox tests and 4 new OpenRouter/deployment checks, with the Windows-like file-locking guard active. No API calls.
 
 ## Config hashes (SHA-256 of canonical JSON of parsed TOML)
 
 | File | Hash |
 |---|---|
-| `config/policy.toml` (policy v1) | `cacdd77a59a317508209ac6d079805b62d422bcc13e299b4855a0c89103febc5` |
+| `config/policy.toml` (policy v1) | `f34a06bfb388d9b4061b6e8a2e1ed61c84ee1be487cb9df68c25da58654e6407` (currency fields added in `102f55e`; was `cacdd77a…`; no evidence or approvals existed yet) |
 | `config/experiment.toml` | `3262a1d6681c5885303d803044691de350355938fc7751562613aac044a7ccde` |
-| `config/agency_fixture.toml` | `a0cdfdf66b8d2c7691757899f280159d2a093d07ff0b9353d82a6cc6b342be78` (changed by `ce4af55` label/note edits; was `733bd4b0…`; no evidence existed yet) |
+| `config/agency_fixture.toml` | `3e2c41fb0295575f2508643b5424ab85900a323e05c79faf2af1f43c533eabae` (label and currency fields edited in `ce4af55` and `102f55e`; no evidence existed yet) |
 
 ## API funding and spend
 
 - Budget: $10 total ($7 dev / $3 final), $1 provisional per run (D-018).
-- Console balance: last confirmed $0. Purchase: **not confirmed**. API key: **not confirmed**. Smoke test: **not run**.
+- Provider: **OpenRouter**. The team reports buying **$10 of OpenRouter credit** (24 Oct, ~1:20 PM IST). The usable balance after any purchase fee is **not yet confirmed** (read it on OpenRouter's credits page). Anthropic Console balance: $0, unused.
+- OpenRouter key on the laptop (`OPENROUTER_API_KEY`): **not yet set**. Smoke test (`uv run hedgeproof smoke`): **not run**. OpenRouter prices and feature support (strict tools, effort): from web search only, **to be verified by the smoke test**.
 - Measured application spend so far: **$0.00** (no application API calls; every agent run so far was the scripted test double).
 
 ## Research state
@@ -87,10 +92,12 @@ Updated: Sat 24 Oct 2026, 1:08 PM IST. Labels: PLANNED, IMPLEMENTED, VERIFIED (c
 
 ## Blockers
 
-1. **API funding and key**: needed only for live agent runs (on the demo laptop). Everything else is unblocked.
+1. **OpenRouter key on the laptop** (needed only for live agent runs): create the key, set `OPENROUTER_API_KEY`, run `uv run hedgeproof smoke`.
+2. **Attribution after the force-push** (D-036): team decision needed.
 
 ## Next
 
-1. Merge PR #3; on the laptop: `git pull`, `uv run pytest -q` (expect 71 passed), then rehearse the checkpoint-1 demo on real data (`docs/DEMO_GUIDE.md`).
-2. If funding arrives: `hedgeproof smoke`, then one measured research run (practice model), then one with the research model.
-3. Before checkpoint 2: the real `HP-FINAL` research run (live agents if funded), validation scoring, freeze; holdout stays sealed until after checkpoint 2.
+1. Merge PR #4; laptop: `git pull`, `uv sync`, `uv run pytest -q`.
+2. Laptop: set the OpenRouter key (never in chat), run `uv run hedgeproof smoke`, share its output (it prints no key).
+3. One measured live research run with the practice model (rehearsal lineage), then one with the research model; record cost and runtime.
+4. Rehearse the checkpoint-1 demo (`docs/DEMO_GUIDE.md`).

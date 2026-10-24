@@ -1,31 +1,68 @@
 # Operational settings (NOT part of the evidence hash).
 #
-# Model choice and the application's API spending limits. The team agreed on
-# $10 total for application API usage (24 Oct 2026): $7 for development,
-# rehearsals and checkpoints, $3 reserved for the final demonstration and
-# judging. One ledger, two phase allowances; never separate budgets per run.
+# Model provider, model choice and the application's API spending limits. The
+# team agreed on $10 total for application API usage (24 Oct 2026): $7 for
+# development, rehearsals and checkpoints, $3 reserved for the final
+# demonstration and judging. One ledger, two phase allowances; never separate
+# budgets per run.
 #
-# The real hard cap is the prepaid Console balance with auto-reload OFF.
-# HedgeProof's spend controller is an additional guard that reserves the
-# worst-case cost of each call before sending it.
+# The real hard cap is the prepaid provider balance (and, if set, the per-key
+# credit limit) with auto top-up OFF. HedgeProof's spend controller is an
+# additional guard that reserves the worst-case cost of each call before sending.
+
+[provider]
+# The team bought $10 of credit on OpenRouter (24 Oct 2026). OpenRouter serves
+# Claude through an Anthropic-compatible Messages endpoint, so the official
+# Anthropic SDK is used with this base URL and the key sent as a Bearer token.
+# To use Anthropic directly instead: name = "anthropic", key_env = "ANTHROPIC_API_KEY",
+# base_url = "", and the claude-*-5-5 model ids below.
+name = "openrouter"
+base_url = "https://openrouter.ai/api"
+key_env = "OPENROUTER_API_KEY"
+# Request features: set to false if `uv run hedgeproof smoke` shows the provider rejects them.
+send_effort = true
+strict_tools = true
+models_url = "https://openrouter.ai/api/v1/models"
 
 [models]
 # Substantive research decisions.
-research = "claude-sonnet-5-5"
+research = "anthropic/claude-sonnet-5.5"
 # Wiring and plumbing tests (labelled as practice runs).
-practice = "claude-haiku-5-5"
+practice = "anthropic/claude-haiku-5.5"
 effort = "medium"
 
-# USD per million tokens, from the Claude API reference checked 24 Oct 2026.
-# Treat as hypotheses to re-check on the Console pricing page before spending.
-# cache_write applies the 1.25x multiplier for 5-minute cache writes.
+# USD per million tokens. Anthropic list prices from the Claude API reference
+# (checked 24 Oct 2026) and OpenRouter listings found by web search the same
+# day; where they differ the HIGHER value is kept so reservations stay
+# conservative. `uv run hedgeproof smoke` compares these with OpenRouter's live
+# price list before any research run. cache_write includes the 1.25x multiplier.
+[prices."anthropic/claude-haiku-5.5"]
+input = 0.10
+output = 0.50
+cache_write = 0.125
+cache_read = 0.01
+long_prompt_threshold_tokens = 100000
+long_input = 0.50
+long_output = 2.50
+
+[prices."anthropic/claude-sonnet-5.5"]
+input = 2.00
+output = 10.00
+cache_write = 2.50
+cache_read = 0.20
+
+[prices."anthropic/claude-opus-5.5"]
+input = 4.00
+output = 20.00
+cache_write = 5.00
+cache_read = 0.20
+
+# Same models when calling Anthropic directly (provider name = "anthropic").
 [prices.claude-haiku-5-5]
 input = 0.10
 output = 0.50
 cache_write = 0.125
 cache_read = 0.01
-# Haiku 5.5 prompts above 100K tokens bill at 0.50 / 2.50; requests are capped
-# below that size, and the reservation uses the higher rate if one ever exceeds it.
 long_prompt_threshold_tokens = 100000
 long_input = 0.50
 long_output = 2.50
