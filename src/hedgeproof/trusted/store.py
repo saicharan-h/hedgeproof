@@ -112,29 +112,44 @@ BEGIN SELECT RAISE(ABORT, 'events are append-only'); END;
 
 
 class Store:
+    """Owns one SQLite connection. Close it (or use ``with Store(...)``) when done:
+    Windows cannot delete a database file, or its -wal/-shm files, while it is open."""
+
     def __init__(self, path: Path | str):
         self.path = str(path)
         if self.path != ":memory:":
             Path(self.path).parent.mkdir(parents=True, exist_ok=True)
         self._lock = threading.RLock()
+        self._closed = False
         self._conn = sqlite3.connect(self.path, check_same_thread=False, isolation_level=None)
-        self._conn.row_factory = sqlite3.Row
-        with self._lock:
-            if self.path != ":memory:":
-                self._conn.execute("PRAGMA journal_mode=WAL")
-            self._conn.execute("PRAGMA foreign_keys=ON")
-            self._conn.executescript(SCHEMA)
-            self._conn.execute("INSERT OR IGNORE INTO meta (key, value) VALUES ('ledger_version', '0')")
+        try:
+            self._conn.row_factory = sqlite3.Row
+            with self._lock:
+                if self.path != ":memory:":
+                    self._conn.execute("PRAGMA journal_mode=WAL")
+                self._conn.execute("PRAGMA foreign_keys=ON")
+                self._conn.executescript(SCHEMA)
+                self._conn.execute("INSERT OR IGNORE INTO meta (key, value) VALUES ('ledger_version', '0')")
+        except BaseException:
+            self._conn.close()
+            raise
+
+    @property
+    def closed(self) -> bool:
+        return self._closed
 
     def close(self) -> None:
+        """Close the connection (idempotent). Later use raises sqlite3.ProgrammingError."""
         with self._lock:
-            self._conn.close()
+            if not self._closed:
+                self._closed = True
+                self._conn.close()
 
-    def __del__(self) -> None:
-        try:
-            self.close()
-        except Exception:  # noqa: BLE001
-            pass
+    def __enter__(self) -> "Store":
+        return self
+
+    def __exit__(self, *exc: object) -> None:
+        self.close()
 
     @contextmanager
     def tx(self) -> Iterator[sqlite3.Connection]:

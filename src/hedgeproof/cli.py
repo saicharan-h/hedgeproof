@@ -48,8 +48,10 @@ def build_core(mode: str, synthetic: bool = False, db: str | None = None, inject
         md = load_market_data(DATA_DIR / "raw")
         label = "HISTORICAL MARKET REPLAY"
     db_path = db or str(VAR_DIR / {"final": "hedgeproof.db", "rehearsal": "rehearsal.db", "test": "synthetic.db"}[mode])
-    return TrustedCore(settings, Store(db_path), md, mode, manifest, sandbox=DockerSandbox(), operator_code=operator_code,
-                       data_label=label, sources=_load_sources(inject_source))
+    sources, sandbox = _load_sources(inject_source), DockerSandbox()
+    # Open the database last: the core owns the store and closes it if its own construction fails.
+    return TrustedCore(settings, Store(db_path), md, mode, manifest, sandbox=sandbox, operator_code=operator_code,
+                       data_label=label, sources=sources)
 
 
 def cmd_serve(args: argparse.Namespace) -> None:
@@ -71,7 +73,10 @@ def cmd_serve(args: argparse.Namespace) -> None:
     print(f" OPERATOR CODE for this session: {code}")
     print(" Type it into the dashboard to approve an order. Never give it to the agent process.")
     print(bar, flush=True)
-    uvicorn.run(create_app(core), host=args.host, port=args.port, log_level="warning")
+    try:
+        uvicorn.run(create_app(core), host=args.host, port=args.port, log_level="warning")
+    finally:
+        core.close()  # idempotent; also closed by the app's shutdown hook
 
 
 def cmd_dashboard(args: argparse.Namespace) -> None:

@@ -6,6 +6,7 @@ import argparse
 import json
 import os
 import sys
+from contextlib import ExitStack
 
 from hedgeproof.config import RESULTS_DIR, VAR_DIR, load_settings
 from hedgeproof.records import new_id, utc_now
@@ -29,44 +30,47 @@ def cmd_run(args: argparse.Namespace) -> None:
     svc = ServiceClient(args.service)
     health = svc.health()
     run_id = new_id("RUN")
-    if args.agents == "live":
-        if not os.environ.get("ANTHROPIC_API_KEY"):
-            sys.exit("Live agents need ANTHROPIC_API_KEY in this terminal's environment (set it without echoing it). "
-                     "Nothing was sent. Use --agents scripted for the labelled no-AI test double.")
-        spend = _spend()
-        recovered = spend.recover_stale_reservations()
-        if recovered:
-            print(f"note: {recovered} unsettled reservation(s) from an earlier crash kept as uncertain spend")
-        model_id = args.model or rt["models"]["practice" if args.practice else "research"]
-        model = ClaudeClient(spend, args.phase, effort=args.effort or rt["models"]["effort"],
-                             timeout_s=rt["call_limits"]["request_timeout_seconds"], max_attempts=rt["call_limits"]["max_attempts_per_call"])
-        before = spend.summary()
-        print(f"LIVE AI RUN {run_id} · model {model_id} · phase {args.phase} · committed so far ${before['committed_usd']:.4f} of ${before['total_allowance_usd']:.2f}")
-    else:
-        model_id, model = "scripted-test-double", ScriptedClient(script)
-        print(f"SCRIPTED TEST DOUBLE RUN {run_id} (no AI calls; labelled test_double)")
-    print(f"service: mode {health['mode']} · data {health['data_label']} · holdout {health['holdout_state']}")
-    ctx = RunContext(svc=svc, model=model, model_id=model_id, run_id=run_id, lineage_id=args.lineage,
-                     research_clock=settings.research_clock, forecast_gallons=settings.forecast_gallons,
-                     max_tool_rounds=settings.experiment["research_limits"]["max_tool_rounds_per_turn"],
-                     max_candidates_run=settings.experiment["research_limits"]["max_candidates_per_run"], log=print)
-    wf = Workflow(ctx, wall_seconds=rt["call_limits"]["max_wall_seconds_per_run"], max_calls=rt["call_limits"]["max_model_calls_per_run"],
-                  approval_timeout_s=args.approval_timeout)
-    started = utc_now()
-    initial = {"requested_contracts": args.request_contracts} if args.workflow == "execute" and args.request_contracts is not None else {}
-    state = wf.run(args.workflow, initial)
-    trace = wf.trace(args.workflow, state, started)
-    out_dir = RESULTS_DIR / "runs" if args.agents == "live" else VAR_DIR / "runs"
-    path = save_trace(trace, out_dir)
-    print(f"\nRESULT: {state.get('status')} · {state.get('reason', '')}")
-    print(f"model calls {ctx.calls} · tokens in {ctx.input_tokens} out {ctx.output_tokens} · measured cost ${ctx.cost_usd:.4f} · trace {path}")
-    if args.agents == "live":
-        s = _spend().summary()
-        print(f"spend ledger: committed ${s['committed_usd']:.4f} · remaining ${s['remaining_usd']:.4f} · phases {json.dumps(s['phases'])}")
+    with ExitStack() as stack:  # closes the spend ledger connection on every exit path
+        spend = None
+        if args.agents == "live":
+            if not os.environ.get("ANTHROPIC_API_KEY"):
+                sys.exit("Live agents need ANTHROPIC_API_KEY in this terminal's environment (set it without echoing it). "
+                         "Nothing was sent. Use --agents scripted for the labelled no-AI test double.")
+            spend = stack.enter_context(_spend())
+            recovered = spend.recover_stale_reservations()
+            if recovered:
+                print(f"note: {recovered} unsettled reservation(s) from an earlier crash kept as uncertain spend")
+            model_id = args.model or rt["models"]["practice" if args.practice else "research"]
+            model = ClaudeClient(spend, args.phase, effort=args.effort or rt["models"]["effort"],
+                                 timeout_s=rt["call_limits"]["request_timeout_seconds"], max_attempts=rt["call_limits"]["max_attempts_per_call"])
+            before = spend.summary()
+            print(f"LIVE AI RUN {run_id} · model {model_id} · phase {args.phase} · committed so far ${before['committed_usd']:.4f} of ${before['total_allowance_usd']:.2f}")
+        else:
+            model_id, model = "scripted-test-double", ScriptedClient(script)
+            print(f"SCRIPTED TEST DOUBLE RUN {run_id} (no AI calls; labelled test_double)")
+        print(f"service: mode {health['mode']} · data {health['data_label']} · holdout {health['holdout_state']}")
+        ctx = RunContext(svc=svc, model=model, model_id=model_id, run_id=run_id, lineage_id=args.lineage,
+                         research_clock=settings.research_clock, forecast_gallons=settings.forecast_gallons,
+                         max_tool_rounds=settings.experiment["research_limits"]["max_tool_rounds_per_turn"],
+                         max_candidates_run=settings.experiment["research_limits"]["max_candidates_per_run"], log=print)
+        wf = Workflow(ctx, wall_seconds=rt["call_limits"]["max_wall_seconds_per_run"], max_calls=rt["call_limits"]["max_model_calls_per_run"],
+                      approval_timeout_s=args.approval_timeout)
+        started = utc_now()
+        initial = {"requested_contracts": args.request_contracts} if args.workflow == "execute" and args.request_contracts is not None else {}
+        state = wf.run(args.workflow, initial)
+        trace = wf.trace(args.workflow, state, started)
+        out_dir = RESULTS_DIR / "runs" if args.agents == "live" else VAR_DIR / "runs"
+        path = save_trace(trace, out_dir)
+        print(f"\nRESULT: {state.get('status')} · {state.get('reason', '')}")
+        print(f"model calls {ctx.calls} · tokens in {ctx.input_tokens} out {ctx.output_tokens} · measured cost ${ctx.cost_usd:.4f} · trace {path}")
+        if spend is not None:
+            s = spend.summary()
+            print(f"spend ledger: committed ${s['committed_usd']:.4f} · remaining ${s['remaining_usd']:.4f} · phases {json.dumps(s['phases'])}")
 
 
 def cmd_spend(args: argparse.Namespace) -> None:
-    print(json.dumps(_spend().summary(), indent=1))
+    with _spend() as sc:
+        print(json.dumps(sc.summary(), indent=1))
 
 
 def cmd_smoke(args: argparse.Namespace) -> None:
@@ -77,9 +81,10 @@ def cmd_smoke(args: argparse.Namespace) -> None:
         sys.exit("ANTHROPIC_API_KEY is not set in this terminal. Nothing was sent.")
     rt = load_settings().runtime
     model_id = args.model or rt["models"]["practice"]
-    client = ClaudeClient(_spend(), "dev", effort="low", timeout_s=60, max_attempts=1)
-    r = client.create(model=model_id, system=[{"type": "text", "text": "Reply with one word."}],
-                      messages=[{"role": "user", "content": "Reply with one word: ready"}], tools=[], max_tokens=200, run_id=new_id("SMOKE"))
+    with _spend() as sc:
+        client = ClaudeClient(sc, "dev", effort="low", timeout_s=60, max_attempts=1)
+        r = client.create(model=model_id, system=[{"type": "text", "text": "Reply with one word."}],
+                          messages=[{"role": "user", "content": "Reply with one word: ready"}], tools=[], max_tokens=200, run_id=new_id("SMOKE"))
     print(f"model {r.model} · stop {r.stop_reason} · text {r.text.strip()[:40]!r} · usage {r.usage} · cost ${r.cost_usd:.6f}")
 
 

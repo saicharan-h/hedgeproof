@@ -8,6 +8,8 @@ rate limit (released) and a timeout (kept as uncertain).
 from __future__ import annotations
 
 import json
+from contextlib import contextmanager
+from typing import Iterator
 
 import anthropic
 import httpx2
@@ -31,12 +33,13 @@ def _reply(request: httpx2.Request) -> httpx2.Response:
     })
 
 
-def _client(handler, tmp_path) -> tuple[ClaudeClient, SpendController]:
-    spend = SpendController(tmp_path / "spend.db", load_settings().runtime)
-    c = ClaudeClient(spend, "dev", effort="low", timeout_s=5, max_attempts=1)
-    c.sdk = anthropic.Anthropic(api_key="test-key-not-real", max_retries=0, timeout=5,
-                                http_client=anthropic.DefaultHttpxClient(transport=httpx2.MockTransport(handler)))
-    return c, spend
+@contextmanager
+def _client(handler, tmp_path) -> Iterator[tuple[ClaudeClient, SpendController]]:
+    with SpendController(tmp_path / "spend.db", load_settings().runtime) as spend:
+        c = ClaudeClient(spend, "dev", effort="low", timeout_s=5, max_attempts=1)
+        c.sdk = anthropic.Anthropic(api_key="test-key-not-real", max_retries=0, timeout=5,
+                                    http_client=anthropic.DefaultHttpxClient(transport=httpx2.MockTransport(handler)))
+        yield c, spend
 
 
 def _call(c: ClaudeClient):
@@ -46,8 +49,9 @@ def _call(c: ClaudeClient):
 
 def test_successful_call_request_shape_and_settlement(tmp_path):
     SENT.clear()
-    c, spend = _client(_reply, tmp_path)
-    r = _call(c)
+    with _client(_reply, tmp_path) as (c, spend):
+        r = _call(c)
+        s = spend.summary()
     body = SENT[0]
     assert body["model"] == "claude-haiku-5-5" and body["max_tokens"] == 500
     assert body["output_config"] == {"effort": "low"}
@@ -56,32 +60,33 @@ def test_successful_call_request_shape_and_settlement(tmp_path):
     assert r.tool_uses == [{"id": "toolu_1", "name": "data_profile", "input": {"as_of": "2018-01-01"}}]
     expected = (1200 * 0.10 + 600 * 0.01 + 80 * 0.50) / 1e6
     assert r.cost_usd == pytest.approx(expected)
-    s = spend.summary()
     assert s["settled_calls"] == 1 and s["committed_usd"] == pytest.approx(expected)
 
 
 def test_rate_limit_releases_reservation(tmp_path):
-    c, spend = _client(lambda req: httpx2.Response(429, json={"type": "error", "error": {"type": "rate_limit_error", "message": "slow down"}}), tmp_path)
     import hedgeproof.agents.llm as llm
 
-    orig = llm.time.sleep
-    llm.time.sleep = lambda s: None
-    try:
-        with pytest.raises(ModelCallError) as e:
-            _call(c)
-    finally:
-        llm.time.sleep = orig
+    limited = lambda req: httpx2.Response(429, json={"type": "error", "error": {"type": "rate_limit_error", "message": "slow down"}})  # noqa: E731
+    with _client(limited, tmp_path) as (c, spend):
+        orig = llm.time.sleep
+        llm.time.sleep = lambda s: None
+        try:
+            with pytest.raises(ModelCallError) as e:
+                _call(c)
+        finally:
+            llm.time.sleep = orig
+        committed = spend.summary()["committed_usd"]
     assert e.value.kind == "rate_limit"
-    assert spend.summary()["committed_usd"] == 0
+    assert committed == 0
 
 
 def test_timeout_keeps_reservation_as_uncertain(tmp_path):
     def boom(req):
         raise httpx2.ReadTimeout("simulated timeout", request=req)
 
-    c, spend = _client(boom, tmp_path)
-    with pytest.raises(ModelCallError) as e:
-        _call(c)
+    with _client(boom, tmp_path) as (c, spend):
+        with pytest.raises(ModelCallError) as e:
+            _call(c)
+        s = spend.summary()
     assert e.value.uncertain is True
-    s = spend.summary()
     assert s["uncertain_calls"] == 1 and s["uncertain_reserved_usd"] > 0

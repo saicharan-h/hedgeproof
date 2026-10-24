@@ -1,6 +1,6 @@
 {
- "generated_at_utc": "2026-10-24T06:17:42+00:00",
- "git_commit": "4030fa9896b4cc414b7c6c5793ecad7e7486d654",
+ "generated_at_utc": "2026-10-24T07:22:47+00:00",
+ "git_commit": "8cdaa68fdced6ad083f521ae2f226f5e389bb8b9",
  "python": "3.12.3",
  "data": "SYNTHETIC test fixture (temporary databases, TEST lineages); no model calls",
  "sandbox": "Docker sandbox ready",
@@ -233,7 +233,7 @@
    "observed": {
     "verification_passed": true,
     "positions": 10,
-    "runtime_s": 0.508
+    "runtime_s": 0.424
    },
    "skipped": null
   },

@@ -61,26 +61,44 @@ class SpendController:
         self.budget = runtime["api_budget"]
         self.limits = runtime["call_limits"]
         self._lock = threading.RLock()
+        self._closed = False
         self._conn = sqlite3.connect(self.path, check_same_thread=False, isolation_level=None, timeout=30)
-        self._conn.row_factory = sqlite3.Row
+        try:
+            self._conn.row_factory = sqlite3.Row
+            with self._lock:
+                self._conn.executescript(
+                    """
+                    CREATE TABLE IF NOT EXISTS calls (
+                        call_id TEXT PRIMARY KEY,
+                        run_id TEXT NOT NULL,
+                        phase TEXT NOT NULL,
+                        model TEXT NOT NULL,
+                        state TEXT NOT NULL CHECK (state IN ('reserved', 'settled', 'released', 'uncertain')),
+                        reserved_usd REAL NOT NULL,
+                        actual_usd REAL,
+                        usage TEXT,
+                        note TEXT,
+                        created_at TEXT NOT NULL,
+                        settled_at TEXT
+                    );
+                    """
+                )
+        except BaseException:
+            self._conn.close()
+            raise
+
+    def close(self) -> None:
+        """Close the ledger connection (idempotent)."""
         with self._lock:
-            self._conn.executescript(
-                """
-                CREATE TABLE IF NOT EXISTS calls (
-                    call_id TEXT PRIMARY KEY,
-                    run_id TEXT NOT NULL,
-                    phase TEXT NOT NULL,
-                    model TEXT NOT NULL,
-                    state TEXT NOT NULL CHECK (state IN ('reserved', 'settled', 'released', 'uncertain')),
-                    reserved_usd REAL NOT NULL,
-                    actual_usd REAL,
-                    usage TEXT,
-                    note TEXT,
-                    created_at TEXT NOT NULL,
-                    settled_at TEXT
-                );
-                """
-            )
+            if not self._closed:
+                self._closed = True
+                self._conn.close()
+
+    def __enter__(self) -> "SpendController":
+        return self
+
+    def __exit__(self, *exc: object) -> None:
+        self.close()
 
     @contextmanager
     def _tx(self) -> Iterator[sqlite3.Connection]:
