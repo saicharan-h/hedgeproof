@@ -75,6 +75,9 @@ class TrustedCore:
 
     mode: "final" (real data, HP-FINAL), "rehearsal" (real data, development
     research only, labelled rehearsal evidence) or "test" (SYNTHETIC data).
+
+    The core takes ownership of the Store it is given: ``close()`` (or leaving a
+    ``with TrustedCore(...)`` block, or a failed constructor) closes it.
     """
 
     def __init__(
@@ -90,9 +93,19 @@ class TrustedCore:
         data_label: str = "HISTORICAL MARKET REPLAY",
         sources: list[dict[str, Any]] | None = None,
     ):
+        self.store = store
+        try:
+            self._setup(settings, market, mode, data_manifest, sandbox, operator_code, results_dir, data_label, sources)
+        except BaseException:
+            store.close()
+            raise
+
+    def _setup(self, settings: Settings, market: MarketData | None, mode: str, data_manifest: dict[str, Any] | None,
+               sandbox: Any, operator_code: str | None, results_dir: Path | None, data_label: str,
+               sources: list[dict[str, Any]] | None) -> None:
         if mode not in ("final", "rehearsal", "test"):
             raise ValueError(mode)
-        self.settings, self.store, self.market, self.mode = settings, store, market, mode
+        self.settings, self.market, self.mode = settings, market, mode
         self.sandbox = sandbox
         self.results_dir = results_dir or RESULTS_DIR
         self.data_label = data_label
@@ -117,6 +130,16 @@ class TrustedCore:
             "mode": mode, "policy_sha256": settings.policy.sha256, "data_manifest_sha256": self.manifest_sha256,
             "replay_date": settings.replay_date,
         })
+
+    def close(self) -> None:
+        """Release the database connection (idempotent)."""
+        self.store.close()
+
+    def __enter__(self) -> "TrustedCore":
+        return self
+
+    def __exit__(self, *exc: object) -> None:
+        self.close()
 
     # --- helpers --------------------------------------------------------------------
 
