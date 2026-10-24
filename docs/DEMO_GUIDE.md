@@ -60,9 +60,36 @@ Live screen order (about 2 minutes):
 4. **Check rules** tab: click "Check a 150% request" → BLOCKED with EXPOSURE_CAP and CASH_STRESS_CAP; scroll the 12 rules (Lohith).
 5. If time: in **Simulate → Fault injection**, arm one lost acknowledgement (operator code); then terminal 3 `uv run hedgeproof run execute --lineage REHEARSAL-CP1 --agents scripted --request-contracts 15`; in **Approve**, approve the 5-contract order with the operator code; terminal 3 shows the lost acknowledgement and the status query by key; **Simulate** shows exactly one fill at $2.626 on 1 Apr 2024 (Lohith).
 
-## Checkpoint 2 and final scripts
+## Checkpoint 2 script (10:00 PM IST, about 75 seconds plus a 3-minute live screen)
 
-Written after real results exist (planned: integrated research, critique, evidence, approval, reconciliation, safety tests; holdout still sealed at checkpoint 2).
+Setup 15 minutes before (presenting laptop, PowerShell, inside `hedgeproof`):
+
+1. `git pull`, then `uv run pytest -q` (expect `145 passed`).
+2. Terminal 1: `Ctrl+C`, then `uv run hedgeproof serve --mode rehearsal` (loads the latest code). Keep the OPERATOR CODE off screen.
+3. Terminal 2: `uv run hedgeproof dashboard` → http://127.0.0.1:8501, zoom 125%.
+4. Terminal 3, before the call: `uv run hedgeproof run research --lineage REHEARSAL-CP2 --agents live` (Claude Haiku 5.5, about 90 s, about one US cent). If it ends `HALT` with `billing_error 402`, the OpenRouter key's allowance is used up: present the two recorded live runs instead and say so.
+5. Close chat apps and notifications; never show environment variables.
+
+Spoken update (Saicharan; fill each bracket with the measured number or delete the sentence):
+
+> **Since checkpoint 1.** Our five agents now run live on Claude Haiku 5.5 through OpenRouter, and every call is reserved against our $10 ledger before it is sent: [three] live research runs have cost about [three] US cents in total. Those runs exposed a real weakness, and we fixed it in trusted code rather than by prompting harder. The critic kept asking for revisions that could not change the evidence: on the 2017 development data every estimate is above our 75% exposure limit, so every candidate holds the same seven contracts. The trusted service now refuses a repeated configuration and its diagnostics say why two results match; when the evidence cannot separate candidates, the system stops instead of overclaiming.
+>
+> **Safety, measured.** Sixteen deterministic cases: 8 of 8 faults caught, 8 of 8 valid cases handled, no policy-violating or duplicate order. With the gate switched off in a scratch simulator, 5 of 5 bad orders would have executed; with it on, none. 145 automated tests pass [in the cloud and on our Windows demo laptop].
+>
+> **Not done yet, said plainly.** The real experiment comes next: the agents research under the HP-FINAL lineage, trusted code scores their candidates on 23 validation months and freezes one, and the sealed 2020 to 2024 holdout opens exactly once, after this checkpoint and our correctness checklist. The comparison against a single agent with the same tools and budget is also still to run.
+
+Live screen (about 3 minutes):
+
+1. **Research** tab: the newest LIVE AI RUN, its decisions, tool calls and the critic's reason (Kruthik).
+2. **Check rules** tab: "Check a 150% request" → BLOCKED with EXPOSURE_CAP and CASH_STRESS_CAP; nothing resized (Lohith).
+3. Order flow with a lost acknowledgement (Lohith, Saicharan): **Simulate → Fault injection**, arm one lost acknowledgement (operator code); Terminal 3: `uv run hedgeproof run execute --lineage REHEARSAL-CP2 --agents scripted --request-contracts 15` (use `--agents live --practice` only if it was rehearsed live first); **Approve**: approve the 5-contract order with the operator code; Terminal 3 shows the lost acknowledgement and the status query by key; **Simulate** shows exactly one fill at $2.626 on 1 Apr 2024.
+4. **Evidence & log** tab: hashes and the append-only event log (Nikshep).
+
+Likely questions: "Why did the agents abstain?" The 75% limit binds every development month, so development data cannot tell candidates apart; trusted validation scoring decides in the real run. "Why Haiku?" Measured: about one cent per run, and the larger model's requests did not fit the OpenRouter key's remaining allowance (D-039). "What do the agents add over a fixed script?" Not measured yet; on development data the fixed script scores the same, and we will say so.
+
+## Final script
+
+Written after the real HP-FINAL run, the single holdout opening and the final order flow.
 
 ## Judge Q&A (answers get measured numbers once they exist)
 

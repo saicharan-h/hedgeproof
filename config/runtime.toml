@@ -23,10 +23,13 @@ key_env = "OPENROUTER_API_KEY"
 send_effort = true
 strict_tools = true
 models_url = "https://openrouter.ai/api/v1/models"
+# Read-only key status (limit, usage, remaining); the smoke test prints the numbers, never the key.
+key_info_url = "https://openrouter.ai/api/v1/key"
 
 [models]
-# Substantive research decisions.
-research = "anthropic/claude-sonnet-5.5"
+# Substantive research decisions. Haiku 5.5 by team decision (D-039): Sonnet's larger requests were refused
+# by the OpenRouter key's remaining allowance; anthropic/claude-sonnet-5.5 works if that allowance is raised.
+research = "anthropic/claude-haiku-5.5"
 # Wiring and plumbing tests (labelled as practice runs).
 practice = "anthropic/claude-haiku-5.5"
 effort = "medium"

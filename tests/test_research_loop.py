@@ -134,3 +134,44 @@ def test_smoke_reproduces_the_research_request_and_isolates_the_refused_feature(
     assert "2 strict tool + effort: OK" in out
     assert "6 research request as a run sends it: FAILED" in out and "cache_control not supported" in out
     assert "accepted with: ['9 same, no prompt caching']" in out
+
+
+def test_smoke_prints_the_key_allowance_and_sends_the_key_only_to_the_key_endpoint(tmp_path, monkeypatch, capsys):
+    from types import SimpleNamespace
+
+    import anthropic
+    import httpx
+    import httpx2
+
+    import hedgeproof.agents.cli as cli
+    from hedgeproof.agents.spend import SpendController
+    from hedgeproof.config import load_settings
+
+    prov = load_settings().runtime["provider"]
+    ok = lambda request: httpx2.Response(200, json={  # noqa: E731
+        "id": "m", "type": "message", "role": "assistant", "model": "anthropic/claude-haiku-5.5", "content": [{"type": "text", "text": "ok"}],
+        "stop_reason": "end_turn", "stop_sequence": None, "usage": {"input_tokens": 50, "output_tokens": 5}})
+    real_anthropic = anthropic.Anthropic
+    monkeypatch.setattr(anthropic, "Anthropic", lambda **kw: real_anthropic(**kw, http_client=anthropic.DefaultHttpxClient(transport=httpx2.MockTransport(ok))))
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-openrouter-key-not-real")
+    monkeypatch.setattr(cli, "_spend", lambda: SpendController(tmp_path / "spend.db", load_settings().runtime))
+    sent: dict[str, dict] = {}
+
+    class _Resp:
+        def __init__(self, data):
+            self.status_code, self._data = 200, data
+
+        def json(self):
+            return self._data
+
+    def fake_get(url, headers=None, timeout=None):
+        sent[url] = dict(headers or {})
+        return _Resp({"data": {"limit": 0.04, "usage": 0.0253, "limit_remaining": 0.0147}} if url == prov["key_info_url"] else {"data": []})
+
+    monkeypatch.setattr(httpx, "get", fake_get)
+    cli.cmd_smoke(SimpleNamespace(model=None))
+    out = capsys.readouterr().out
+    assert "key allowance: limit $0.0400 · used $0.0253 · remaining $0.0147" in out
+    assert "test-openrouter-key-not-real" not in out
+    assert sent[prov["key_info_url"]]["Authorization"] == "Bearer test-openrouter-key-not-real"
+    assert "Authorization" not in sent[prov["models_url"]]

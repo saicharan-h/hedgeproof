@@ -1,6 +1,6 @@
 # HedgeProof build state
 
-Updated: Sat 24 Oct 2026, 3:37 PM IST. Labels: PLANNED, IMPLEMENTED, VERIFIED (command output or inspected file), BLOCKED, DEFERRED.
+Updated: Sat 24 Oct 2026, 9:17 PM IST. Labels: PLANNED, IMPLEMENTED, VERIFIED (command output or inspected file), BLOCKED, DEFERRED.
 
 ## Event facts
 
@@ -28,7 +28,7 @@ Updated: Sat 24 Oct 2026, 3:37 PM IST. Labels: PLANNED, IMPLEMENTED, VERIFIED (c
 | Demo laptop: `uv sync` and `uv run hedgeproof sandbox-build` | Reported PASSED by Saicharan (12:45 IST) |
 | Demo laptop: `uv run pytest -q` | PR #1 code: 24 failed, 32 passed (WinError 32). After PR #2: **64 passed**, reported by Saicharan (~1:00 PM IST). Real-data tests (PR #3) not yet run there |
 | Demo laptop: `uv run hedgeproof smoke` on `65b980c` | PASSED (output pasted by Saicharan, ~2:15 PM): OpenRouter lists `anthropic/claude-haiku-5.5` at $0.10 / $0.50 and `anthropic/claude-sonnet-5.5` at $2.00 / $10.00 per million tokens, at or below the configured prices; a plain call and a strict-tool + effort call were both accepted (current settings kept); cost $0.000082 |
-| Demo laptop: `uv run pytest -q` on `55089cb` | **120 passed, 21 errors** (reported ~3:00 PM). No assertion failed (the 120 include the Docker sandbox, real-data and workflow tests). Every error is `PermissionError [WinError 5] Access is denied` on `%TEMP%\pytest-of-saich` while pytest creates `tmp_path`, plus 2 warnings for an unwritable `.pytest_cache`; likely those folders were made by an administrator (elevated) shell. Fix in PR #6 (fresh temporary root per run, no cache folder); Windows re-run pending |
+| Demo laptop: `uv run pytest -q` on `55089cb` | **120 passed, 21 errors** (reported ~3:00 PM). No assertion failed (the 120 include the Docker sandbox, real-data and workflow tests). Every error is `PermissionError [WinError 5] Access is denied` on `%TEMP%\pytest-of-saich` while pytest creates `tmp_path`, plus 2 warnings for an unwritable `.pytest_cache`; likely those folders were made by an administrator (elevated) shell. Fix in PR #6 (fresh temporary root per run, no cache folder). After pulling it (local traces moved aside first), Saicharan reported "that error sorted now" (~3:50 PM); the exact count was not reported |
 | Dependencies resolve and lock (77 packages, `uv.lock`) | VERIFIED |
 
 ## Data version (HISTORICAL MARKET REPLAY, EIA public data)
@@ -92,6 +92,7 @@ Updated: Sat 24 Oct 2026, 3:37 PM IST. Labels: PLANNED, IMPLEMENTED, VERIFIED (c
 - Budget: $10 total ($7 dev / $3 final), $1 provisional per run (D-018).
 - Provider: **OpenRouter**. The team reports buying **$10 of OpenRouter credit** (24 Oct, ~1:20 PM IST). The usable balance after any purchase fee is **not yet confirmed** (read it on OpenRouter's credits page). Anthropic Console balance: $0, unused.
 - OpenRouter key on the laptop (`OPENROUTER_API_KEY`): set (the smoke test authenticated). Prices and feature support (strict tools, effort): **verified by the smoke test** (see Environment facts).
+- Sonnet 5.5 (~4:45-5:00 PM): small probes pass, but every research-shaped request was refused with `402 billing_error` ("can only afford 1273" of 2500 tokens): the key's remaining allowance, not the code. Team decision: Haiku 5.5 for all roles (D-039).
 - Measured application spend so far: **$0.0205** committed in the laptop's ledger (`var/spend.db`): smoke test $0.000082 + run 1 $0.0093 + run 2 $0.0111. Remaining in the app's allowance: $9.9795 ($7 dev / $3 final phases). OpenRouter's activity page is the authoritative bill.
 
 ## Research state
@@ -106,6 +107,6 @@ Updated: Sat 24 Oct 2026, 3:37 PM IST. Labels: PLANNED, IMPLEMENTED, VERIFIED (c
 
 ## Next
 
-1. Laptop: `git pull`, `uv run pytest -q` (expect 142 passed on Windows too).
-2. Checkpoint 1 at 4:00 PM (`docs/DEMO_GUIDE.md`).
-3. Restart the trusted service, then one run with the research model (`anthropic/claude-sonnet-5.5`, lineage `REHEARSAL-LIVE3`); record cost and runtime.
+1. Laptop: `git pull`; `uv run hedgeproof smoke` (prints the key's remaining allowance); Haiku research run `REHEARSAL-CP2`; checkpoint 2 at 10:00 PM (`docs/DEMO_GUIDE.md`).
+2. After checkpoint 2: real `HP-FINAL` research run on the final service (Haiku; at most 2 runs, 6 candidates), trusted validation scoring and freeze; correctness checklist; single holdout opening; final order flow.
+3. Single-agent comparison and E1-E3 trials (PLANNED, not started), video, final README.
