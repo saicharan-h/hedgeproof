@@ -1,6 +1,6 @@
 # HedgeProof build state
 
-Updated: Sat 24 Oct 2026, 1:25 PM IST. Labels: PLANNED, IMPLEMENTED, VERIFIED (command output or inspected file), BLOCKED, DEFERRED.
+Updated: Sat 24 Oct 2026, 1:08 PM IST. Labels: PLANNED, IMPLEMENTED, VERIFIED (command output or inspected file), BLOCKED, DEFERRED.
 
 ## Event facts
 
@@ -65,7 +65,7 @@ Updated: Sat 24 Oct 2026, 1:25 PM IST. Labels: PLANNED, IMPLEMENTED, VERIFIED (c
 
 ## Tests
 
-- `uv run pytest -q`: **71 passed** in the cloud container (24 Oct, 1:20 PM IST): 64 previous plus 7 real-data checks, with the Windows-like file-locking guard active. No API calls.
+- `uv run pytest -q`: **71 passed** in the cloud container (24 Oct, about 1:05 PM IST): 64 previous plus 7 real-data checks, with the Windows-like file-locking guard active. No API calls.
 
 ## Config hashes (SHA-256 of canonical JSON of parsed TOML)
 
