@@ -27,13 +27,14 @@ A city bus agency buys diesel every month but fixes its fuel budget months earli
 | Component | Status |
 |---|---|
 | Frozen policy, experiment and agency configs with hashes | Implemented |
-| EIA loader, contract identity, period table, splits 10 / 23 / 49 | Implemented; verified on SYNTHETIC data; **real EIA files pending** |
+| EIA loader, contract identity, period table, splits 10 / 23 / 49 | Implemented; verified on the committed EIA files (roll mapping checked on real prices; one development month rejected for a missing spot price) |
 | Quant engine: sizing, budget-error identity, variance, BaR95, baselines, paired block bootstrap | Implemented; financial invariants pass |
 | Trusted service: gate G01-G12, operator-coded approvals, paper simulator, reconciliation, holdout lock, evidence packets | Implemented; 16 deterministic cases pass on SYNTHETIC fixtures |
 | Docker sandbox for generated code | Implemented; isolation verified through the runner (cloud container) |
 | Five-role LangGraph workflow with spend controller | Implemented; verified with the labelled scripted test double; **live AI runs pending API funding** |
 | Streamlit dashboard | Implemented; verified in a headless browser |
-| Real-data results, live agent trials, holdout opening | Pending (see `docs/BUILD_STATE.md`) |
+| Development baselines on EIA data | Done (labelled development-only, n = 9; see Tests and results) |
+| Live agent trials, validation scoring, holdout opening | Pending (see `docs/BUILD_STATE.md`) |
 | GASB-informed effectiveness diagnostic (proposal stretch module) | Deferred |
 
 Live progress, test counts, hashes, spend and blockers: [`docs/BUILD_STATE.md`](docs/BUILD_STATE.md). Decisions and overrides: [`docs/DECISIONS.md`](docs/DECISIONS.md).
@@ -91,9 +92,20 @@ uv run hedgeproof run research --lineage TEST-DEMO --agents scripted
 uv run hedgeproof run execute --lineage TEST-DEMO --agents scripted --request-contracts 15
 ```
 
-`--agents scripted` is a labelled test double that makes no AI calls. With API funding, use `--agents live` (see below). Real data: put the two EIA files in `data/raw/`, then `uv run hedgeproof ingest --retrieved-at 2026-10-24T12:30 --retrieved-by "Name"` and `uv run hedgeproof serve --mode rehearsal` (development research only) or `--mode final` (the real experiment `HP-FINAL`).
+`--agents scripted` is a labelled test double that makes no AI calls. With API funding, use `--agents live` (see below).
 
-Other commands: `uv run hedgeproof evals` (16 cases, writes `results/`), `uv run hedgeproof spend` (API ledger), `uv run hedgeproof smoke` (one tiny live call).
+Run it on the **real EIA data** (already committed in `data/raw/`; the service checks the files against `data/manifest.json` at start):
+
+```
+uv run hedgeproof serve --mode rehearsal              # terminal 1: real data, development research only
+uv run hedgeproof dashboard                           # terminal 2
+uv run hedgeproof run research --lineage REHEARSAL-CP1 --agents scripted
+uv run hedgeproof run execute --lineage REHEARSAL-CP1 --agents scripted --request-contracts 15
+```
+
+`--mode final` serves the real experiment `HP-FINAL` (validation scoring and the single holdout opening); it is not used for rehearsals. To rebuild the manifest from fresh downloads: `uv run hedgeproof ingest --retrieved-at 2026-10-24T12:03 --retrieved-by "Name"`.
+
+Other commands: `uv run hedgeproof baseline` (development baselines on EIA data, writes `results/`), `uv run hedgeproof evals` (16 cases, writes `results/`), `uv run hedgeproof spend` (API ledger), `uv run hedgeproof smoke` (one tiny live call).
 
 ### Environment variables (no env files in this repository)
 
@@ -121,7 +133,17 @@ The team's application API budget is **$10 total**: $7 for development, rehearsa
 
 ## Tests and results
 
-`uv run pytest -q`: 64 deterministic tests (financial invariants, the 16 predefined cases, HTTP boundary tests, sandbox isolation, spend controller, database connection lifecycle, workflow with the scripted test double). Latest run and per-case evidence: [`results/EVAL_SUMMARY.md`](results/EVAL_SUMMARY.md). These check the enforcement code on SYNTHETIC inputs; they do not measure hedge performance. Empirical results on EIA data will be added with their data version, code version and run identifiers. No savings or performance are claimed.
+`uv run pytest -q`: 71 deterministic tests (financial invariants, the 16 predefined cases, HTTP boundary tests, sandbox isolation, spend controller, database connection lifecycle, real-data checks, workflow with the scripted test double). Latest run and per-case evidence: [`results/EVAL_SUMMARY.md`](results/EVAL_SUMMARY.md). These check the enforcement code on SYNTHETIC inputs; they do not measure hedge performance.
+
+**Development baselines on EIA data** (`uv run hedgeproof baseline` → [`results/development_baselines.json`](results/development_baselines.json); data manifest `DM-f5615282b75c`; development split Feb-Nov 2017, **9 scored positions** because June 2017 has no Gulf Coast spot price on its exit day and is rejected, not patched):
+
+| Strategy | Budget-error std | Budget-at-Risk (95th pct) | Avg contracts | Policy breaches |
+|---|---|---|---|---|
+| No hedge | $36,648 | $64,932 | 0 | 0 |
+| Fixed 50% | $23,615 | $41,210 | 5 | 0 |
+| Fixed script (vetted 36-position OLS) | $20,053 | $31,721 | 7 (75% cap binds; raw ratio 1.05-1.10) | 0 |
+
+90% paired block-bootstrap interval for the change in standard deviation, fixed script vs no hedge: −$23,217 to −$8,112 (vs fixed 50%: −$6,290 to −$546). This is a tiny development sample, not validation or holdout evidence, and not a performance or savings claim. Validation and the sealed holdout are reported only through the planned single evaluation.
 
 ## Limitations
 
@@ -144,7 +166,7 @@ The team's application API budget is **$10 total**: $7 for development, rehearsa
 
 ## Acknowledgments
 
-- **Data:** U.S. Energy Information Administration (EIA), petroleum spot and NYMEX futures prices (public domain; retrieval recorded in `data/manifest.json`). Contract facts: CME Group NYMEX Rulebook chapter 150 (NY Harbor ULSD futures).
+- **Data:** U.S. Energy Information Administration (EIA), petroleum spot and NYMEX futures prices: `PET_PRI_FUT_S1_D.xls` and `PET_PRI_SPT_S1_D.xls`, downloaded 24 Oct 2026, 12:03 PM IST, committed unmodified with SHA-256 hashes in `data/manifest.json` (public domain). Contract facts: CME Group NYMEX Rulebook chapter 150 (NY Harbor ULSD futures).
 - **Context:** MTA Fuel Hedge Program Report (27 Oct 2025).
 - **Related work:** TradingAgents (TauricResearch) and FinRobot (AI4Finance Foundation) for multi-agent finance and deterministic finance separated from LLM narration; HedgeProof's distinction is binding each paper order to the agency's exposure, a frozen policy and a reproducible evidence record. No code from those projects is used.
 - **Libraries:** Anthropic Python SDK, LangGraph, FastAPI, Uvicorn, Pydantic, Streamlit, NumPy, pandas, xlrd, httpx, pytest; Docker.
