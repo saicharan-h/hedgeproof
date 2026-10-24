@@ -149,6 +149,42 @@ def cmd_ingest(args: argparse.Namespace) -> None:
                       "rejected": out["rejected"], "series": m["series"]}, indent=1, default=str))
 
 
+def cmd_baseline(args: argparse.Namespace) -> None:
+    """Development-split baselines on the committed EIA data (no model calls, no validation, no holdout)."""
+    import tempfile
+
+    from hedgeproof.evals.cli import _git_commit
+    from hedgeproof.records import utc_now
+
+    with tempfile.TemporaryDirectory(prefix="hp-baseline-") as d:
+        with build_core("rehearsal", db=str(Path(d) / "baseline.db")) as core:
+            bt = core.run_backtest("REHEARSAL-BASELINE", "development", template="ols36", actor="trusted")
+            manifest = core.manifest
+            rejected = [{"hedge_month": r["hedge_month"], "status": r["status"]} for r in core.rows
+                        if r["split"] == "development" and r["status"] != "ok"]
+    m = bt["metrics"]
+    rows = {s: m[s] for s in ("unhedged", "fixed50", "adaptive")}
+    out = {
+        "generated_at_utc": utc_now(), "git_commit": _git_commit(), "label": bt["label"], "split": "development",
+        "strategy_in_adaptive_slot": "fixed script: vetted 36-position OLS (no agent involved)",
+        "n_positions_in_split": bt["n_positions"] + len(rejected), "n_positions_scored": bt["n_positions"],
+        "rejected_rows_in_split": rejected, "excluded": m["excluded"], "data_manifest_id": manifest["id"],
+        "data_manifest_sha256": manifest["sha256"], "backtest_sha256": bt["sha256"], "config_hashes": bt["config_hashes"],
+        "metrics": rows, "pass_rule_on_development": m["pass_rule"], "adaptive_vs_fixed50": m["adaptive_vs_fixed50"],
+        "bootstrap": m["bootstrap"], "per_position": bt["rows"],
+        "note": "Development split only (tiny sample). Not validation or holdout evidence; no performance claim.",
+    }
+    path = REPO_ROOT / "results" / "development_baselines.json"
+    path.parent.mkdir(exist_ok=True)
+    path.write_text(json.dumps(out, indent=1, default=str) + "\n")
+    for s, label in (("unhedged", "No hedge"), ("fixed50", "Fixed 50%"), ("adaptive", "Fixed script OLS-36")):
+        r = rows[s]
+        print(f"{label:20s} n={r['n_positions']}  std ${r['std_usd']:>10,.0f}  BaR95 ${r['bar95_usd']:>10,.0f}  "
+              f"mean ${r['mean_error_usd']:>9,.0f}  avg contracts {r['mean_contracts']:.2f}  breaches {r['policy_breaches']}")
+    print(f"rejected rows in the development split (never patched): {rejected}; other exclusions: {m['excluded']}")
+    print(f"pass rule on development (diagnostic only): {m['pass_rule']['verdict']}; wrote {path}")
+
+
 def cmd_sandbox_build(args: argparse.Namespace) -> None:
     from hedgeproof.sandbox import IMAGE
 
@@ -192,6 +228,9 @@ def main(argv: list[str] | None = None) -> None:
     i.add_argument("--retrieved-by", required=True, help="who downloaded the files")
     i.add_argument("--scenario", choices=["us", "india"], default="us", help="which scenario to ingest")
     i.set_defaults(fn=cmd_ingest)
+
+    bl = sub.add_parser("baseline", help="development baselines on the EIA data; writes results/development_baselines.json")
+    bl.set_defaults(fn=cmd_baseline)
 
     b = sub.add_parser("sandbox-build", help="build the hedgeproof-sandbox Docker image")
     b.set_defaults(fn=cmd_sandbox_build)

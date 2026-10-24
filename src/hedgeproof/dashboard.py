@@ -185,8 +185,10 @@ with tabs[1]:
         pr = bt["metrics"].get("pass_rule") or {}
         boot = bt["metrics"].get("bootstrap") or {}
         st.caption(f"Pass rule on this split: {pr.get('verdict', 'n/a')} (lower variance and no worse BaR than no hedge, zero breaches). "
-                   + (f"90% block-bootstrap interval for change in variance vs no hedge: {[round(x) for x in boot['intervals']['dvar_vs_unhedged']]} $² "
-                      f"(n = {boot['n_positions']}, wide by design: small sample)." if boot.get("available") else ""))
+                   + (f"90% block-bootstrap interval for the change in budget-error standard deviation versus no hedge: "
+                      f"{money(boot['intervals']['dstd_vs_unhedged'][0])} to {money(boot['intervals']['dstd_vs_unhedged'][1])} "
+                      f"(n = {boot['n_positions']}; small sample, so the interval is wide)."
+                      if boot.get("available") and "dstd_vs_unhedged" in boot["intervals"] else ""))
         if bt["rows"]:
             dfr = pd.DataFrame(bt["rows"])
             chart = dfr.pivot(index="hedge_month", columns="strategy", values="error")

@@ -27,6 +27,7 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import pandas as pd
 
 from hedgeproof.records import hash_value, sha256_hex
@@ -413,21 +414,37 @@ def training_window(table: pd.DataFrame, decision_month: str, window: int, purge
     return recs
 
 
-def continuity_report(md: MarketData) -> dict[str, Any]:
-    """Compare the same-contract roll move with the median daily move.
+def continuity_report(md: MarketData, since: str = "2013-05-01") -> dict[str, Any]:
+    """Check the delivery-month mapping at month boundaries (from the May 2013 ULSD switch).
 
-    At each month boundary, Contract 2 on the last session of month m and
-    Contract 1 on d_(m+1) are the same delivery month. A big jump there would
-    suggest the mapping is wrong. Reported, never used to patch prices.
+    1. Contract check (interface contract 3.3): Contract 2 on the last session of
+       month m and Contract 1 on d_(m+1) are the same delivery month; flag
+       boundaries where that one-session move exceeds 3 x the median absolute
+       daily Contract 1 move. Large market moves also trigger it, so it is a
+       screen, not proof.
+    2. Roll consistency: under the mapping, C1[first]-C2[last] and
+       C2[first]-C3[last] are same-contract moves of adjacent contracts, so they
+       should be as correlated as adjacent contracts on ordinary days. The
+       alternative (no roll at the boundary) is reported for comparison.
+    Reported only; never used to patch prices.
     """
-    sessions = md.sessions
+    start = pd.Timestamp(since)
+    sessions = [x for x in md.sessions if x >= start]
     within: list[float] = []
+    day_c1, day_c2, ours_a, ours_b, alt_a, alt_b = [], [], [], [], [], []
     boundaries = []
     for a, b in zip(sessions, sessions[1:]):
         if month_key(a) == month_key(b):
             within.append(abs(float(md.c1[b]) - float(md.c1[a])))
+            day_c1.append(float(md.c1[b]) - float(md.c1[a]))
+            day_c2.append(float(md.c2[b]) - float(md.c2[a]))
         else:
             boundaries.append((a, b))
+            if a in md.c3.index and b in md.c3.index:
+                ours_a.append(float(md.c1[b]) - float(md.c2[a]))
+                ours_b.append(float(md.c2[b]) - float(md.c3[a]))
+                alt_a.append(float(md.c1[b]) - float(md.c1[a]))
+                alt_b.append(float(md.c2[b]) - float(md.c2[a]))
     med = float(pd.Series(within).median()) if within else float("nan")
     flagged = []
     for a, b in boundaries:
@@ -437,12 +454,29 @@ def continuity_report(md: MarketData) -> dict[str, Any]:
             flagged.append(
                 {"last_session": a.date().isoformat(), "first_session": b.date().isoformat(), "same_contract_move": round(same, 4), "cross_contract_move": round(cross, 4)}
             )
+
+    def corr(x: list[float], y: list[float]) -> float | None:
+        return float(np.corrcoef(np.array(x), np.array(y))[0, 1]) if len(x) > 2 else None
+
+    def med_abs_diff(x: list[float], y: list[float]) -> float | None:
+        return float(np.median(np.abs(np.array(x) - np.array(y)))) if x else None
+
     return {
+        "since": since,
         "boundaries": len(boundaries),
         "median_abs_daily_move_c1": med,
         "threshold": 3 * med,
         "flagged": len(flagged),
         "flagged_boundaries": flagged,
+        "roll_consistency": {
+            "ordinary_days_corr_dC1_dC2": corr(day_c1, day_c2),
+            "mapping_corr_at_boundaries": corr(ours_a, ours_b),
+            "alternative_no_roll_corr": corr(alt_a, alt_b),
+            "median_abs_diff_ordinary_days": med_abs_diff(day_c1, day_c2),
+            "median_abs_diff_mapping": med_abs_diff(ours_a, ours_b),
+            "median_abs_diff_alternative": med_abs_diff(alt_a, alt_b),
+            "boundaries_compared": len(ours_a),
+        },
     }
 
 
