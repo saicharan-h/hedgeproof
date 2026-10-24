@@ -34,3 +34,13 @@ def test_no_api_keys_in_tracked_text_files():
         if KEY_LIKE.search(text):
             hits.append(f)
     assert hits == [], f"possible API keys in: {hits}"
+
+
+def test_temporary_directory_cleanup_errors_are_not_suppressed():
+    """Database handles must be closed, not hidden: no ignore_cleanup_errors anywhere."""
+    hits = []
+    for f in _tracked_files():
+        if f.endswith(".py") and f != "tests/test_hygiene.py":
+            if "ignore_cleanup_errors" in (REPO_ROOT / f).read_text(encoding="utf-8"):
+                hits.append(f)
+    assert hits == [], f"cleanup errors suppressed in: {hits}"

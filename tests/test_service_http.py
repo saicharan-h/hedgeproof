@@ -1,24 +1,33 @@
-"""HTTP boundary tests for the trusted service (SYNTHETIC data, temporary database)."""
+"""HTTP boundary tests for the trusted service (SYNTHETIC data, temporary database).
+
+Each test nests its context managers so they exit in reverse order: the
+TestClient stops the app (its shutdown hook closes the database), the Env
+closes again (idempotent), and only then is the temporary directory removed.
+"""
 
 from __future__ import annotations
 
+import sqlite3
 import tempfile
+from contextlib import contextmanager
 from pathlib import Path
+from typing import Iterator
 
+import pytest
 from fastapi.testclient import TestClient
 
 from hedgeproof.evals.cases import CODE, Env
 from hedgeproof.trusted.service import create_app
 
 
-def _client(tmp: Path) -> tuple[TestClient, Env]:
-    env = Env(tmp)
-    return TestClient(create_app(env.core)), env
+@contextmanager
+def service() -> Iterator[tuple[TestClient, Env]]:
+    with tempfile.TemporaryDirectory() as d, Env(Path(d)) as env, TestClient(create_app(env.core)) as client:
+        yield client, env
 
 
 def test_health_reports_policy_and_sealed_holdout():
-    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as d:
-        c, env = _client(Path(d))
+    with service() as (c, env):
         h = c.get("/health").json()
         assert h["policy_sha256"] == env.settings.policy.sha256
         assert h["holdout_state"] == "sealed"
@@ -26,8 +35,7 @@ def test_health_reports_policy_and_sealed_holdout():
 
 
 def test_approval_requires_operator_code_and_agent_cannot_self_approve():
-    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as d:
-        c, env = _client(Path(d))
+    with service() as (c, env):
         pkt = env.packet()
         t = env.terms(pkt, 5)
         r = c.post("/intents", json={"terms": t.model_dump(mode="json"), "requested_by": "risk"}).json()
@@ -44,8 +52,7 @@ def test_approval_requires_operator_code_and_agent_cannot_self_approve():
 
 
 def test_ack_timeout_returns_504_then_status_query_reconciles():
-    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as d:
-        c, env = _client(Path(d))
+    with service() as (c, env):
         t = env.terms(env.packet(), 5)
         ih = c.post("/intents", json={"terms": t.model_dump(mode="json"), "requested_by": "risk"}).json()["intent"]["intent_hash"]
         c.post("/approvals", json={"intent_hash": ih, "approver": "Saicharan"}, headers={"X-Operator-Code": CODE})
@@ -61,8 +68,7 @@ def test_ack_timeout_returns_504_then_status_query_reconciles():
 
 
 def test_validation_rows_are_withheld_and_holdout_split_refused():
-    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as d:
-        c, env = _client(Path(d))
+    with service() as (c, env):
         r = c.post("/backtests", json={"lineage_id": "TEST-HTTP", "split": "validation", "template": "ols36"}).json()
         assert r["rows"] == [] and r["metrics"]["adaptive"]["n_positions"] == 23
         art = c.get(f"/artifacts/{r['id']}").json()
@@ -74,8 +80,7 @@ def test_validation_rows_are_withheld_and_holdout_split_refused():
 
 
 def test_operator_code_locks_after_repeated_failures():
-    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as d:
-        c, env = _client(Path(d))
+    with service() as (c, env):
         for _ in range(10):
             c.post("/simulator/arm-ack-timeout", headers={"X-Operator-Code": "NOPE00"})
         r = c.post("/simulator/arm-ack-timeout", headers={"X-Operator-Code": CODE})
@@ -83,12 +88,7 @@ def test_operator_code_locks_after_repeated_failures():
 
 
 def test_events_and_artifacts_are_append_only():
-    import sqlite3
-
-    import pytest
-
-    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as d:
-        _, env = _client(Path(d))
+    with tempfile.TemporaryDirectory() as d, Env(Path(d)) as env:
         env.packet()
         with pytest.raises(sqlite3.DatabaseError):
             with env.core.store.tx() as conn:

@@ -20,7 +20,7 @@ HAVE_SANDBOX = SANDBOX.available()[0]
 
 @pytest.mark.parametrize("fn", cases.CASES, ids=[f.__name__ for f in cases.CASES])
 def test_case(fn):
-    with tempfile.TemporaryDirectory(prefix="hp-case-", ignore_cleanup_errors=True) as d:
+    with tempfile.TemporaryDirectory(prefix="hp-case-") as d:  # each case closes its database first
         res = fn(Path(d), SANDBOX if HAVE_SANDBOX else None)
     if res.skipped:
         pytest.skip(f"{res.case_id}: {res.skipped}")
