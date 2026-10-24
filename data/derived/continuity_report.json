@@ -1,0 +1,150 @@
+{
+ "boundaries": 131,
+ "flagged": 22,
+ "flagged_boundaries": [
+  {
+   "cross_contract_move": -0.086,
+   "first_session": "2013-11-01",
+   "last_session": "2013-10-31",
+   "same_contract_move": -0.072
+  },
+  {
+   "cross_contract_move": -0.09,
+   "first_session": "2014-01-02",
+   "last_session": "2013-12-31",
+   "same_contract_move": -0.078
+  },
+  {
+   "cross_contract_move": -0.412,
+   "first_session": "2015-03-02",
+   "last_session": "2015-02-27",
+   "same_contract_move": -0.087
+  },
+  {
+   "cross_contract_move": -0.096,
+   "first_session": "2015-09-01",
+   "last_session": "2015-08-31",
+   "same_contract_move": -0.123
+  },
+  {
+   "cross_contract_move": 0.077,
+   "first_session": "2016-12-01",
+   "last_session": "2016-11-30",
+   "same_contract_move": 0.072
+  },
+  {
+   "cross_contract_move": -0.102,
+   "first_session": "2019-08-01",
+   "last_session": "2019-07-31",
+   "same_contract_move": -0.118
+  },
+  {
+   "cross_contract_move": -0.08,
+   "first_session": "2020-04-01",
+   "last_session": "2020-03-31",
+   "same_contract_move": -0.07
+  },
+  {
+   "cross_contract_move": 0.138,
+   "first_session": "2022-03-01",
+   "last_session": "2022-02-28",
+   "same_contract_move": 0.22
+  },
+  {
+   "cross_contract_move": -0.577,
+   "first_session": "2022-05-02",
+   "last_session": "2022-04-29",
+   "same_contract_move": 0.188
+  },
+  {
+   "cross_contract_move": 0.052,
+   "first_session": "2022-06-01",
+   "last_session": "2022-05-31",
+   "same_contract_move": 0.208
+  },
+  {
+   "cross_contract_move": 0.041,
+   "first_session": "2022-07-01",
+   "last_session": "2022-06-30",
+   "same_contract_move": 0.108
+  },
+  {
+   "cross_contract_move": -0.185,
+   "first_session": "2022-08-01",
+   "last_session": "2022-07-29",
+   "same_contract_move": -0.109
+  },
+  {
+   "cross_contract_move": -0.154,
+   "first_session": "2022-09-01",
+   "last_session": "2022-08-31",
+   "same_contract_move": -0.106
+  },
+  {
+   "cross_contract_move": 0.0,
+   "first_session": "2022-10-03",
+   "last_session": "2022-09-30",
+   "same_contract_move": 0.147
+  },
+  {
+   "cross_contract_move": -0.101,
+   "first_session": "2022-12-01",
+   "last_session": "2022-11-30",
+   "same_contract_move": -0.102
+  },
+  {
+   "cross_contract_move": -0.275,
+   "first_session": "2023-01-03",
+   "last_session": "2022-12-30",
+   "same_contract_move": -0.208
+  },
+  {
+   "cross_contract_move": -0.231,
+   "first_session": "2023-02-01",
+   "last_session": "2023-01-31",
+   "same_contract_move": -0.194
+  },
+  {
+   "cross_contract_move": 0.053,
+   "first_session": "2023-03-01",
+   "last_session": "2023-02-28",
+   "same_contract_move": 0.068
+  },
+  {
+   "cross_contract_move": -0.071,
+   "first_session": "2023-07-03",
+   "last_session": "2023-06-30",
+   "same_contract_move": -0.071
+  },
+  {
+   "cross_contract_move": -0.139,
+   "first_session": "2023-10-02",
+   "last_session": "2023-09-29",
+   "same_contract_move": -0.078
+  },
+  {
+   "cross_contract_move": -0.169,
+   "first_session": "2023-12-01",
+   "last_session": "2023-11-30",
+   "same_contract_move": -0.092
+  },
+  {
+   "cross_contract_move": -0.095,
+   "first_session": "2024-02-01",
+   "last_session": "2024-01-31",
+   "same_contract_move": -0.072
+  }
+ ],
+ "median_abs_daily_move_c1": 0.02200000000000024,
+ "roll_consistency": {
+  "alternative_no_roll_corr": 0.8249581791202466,
+  "boundaries_compared": 131,
+  "mapping_corr_at_boundaries": 0.992799346965704,
+  "median_abs_diff_alternative": 0.007000000000000117,
+  "median_abs_diff_mapping": 0.001000000000000112,
+  "median_abs_diff_ordinary_days": 0.001000000000000334,
+  "ordinary_days_corr_dC1_dC2": 0.9522844148431725
+ },
+ "since": "2013-05-01",
+ "threshold": 0.06600000000000072
+}

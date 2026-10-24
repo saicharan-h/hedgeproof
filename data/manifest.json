@@ -1,0 +1,79 @@
+{
+ "assumptions": {
+  "decision_time": "before the d_p close, using sessions up to d_p - 1 only",
+  "fill": "official 2:30 p.m. NYMEX closing price of the entry or exit session, as published by EIA",
+  "label": "HISTORICAL MARKET REPLAY (EIA public data)",
+  "physical_purchase": "one purchase of Q gallons at Gulf Coast spot on d_(p+1), the exit session (spot is a proxy for the invoice price)",
+  "revisions": "EIA historical vintages are not available; revisions remain a limitation",
+  "spot_lag_sessions": "1",
+  "stale_max_sessions": "3"
+ },
+ "attribution": "Source: U.S. Energy Information Administration (EIA)",
+ "continuity_boundaries": 131,
+ "continuity_flags": 22,
+ "created_at": "2026-10-24T07:30:54+00:00",
+ "files": [
+  {
+   "bytes": 3019264,
+   "path": "data/raw/PET_PRI_FUT_S1_D.xls",
+   "retrieved_at": "2026-10-24T12:03+05:30",
+   "retrieved_by": "Signal Syndicate team member (reported by Saicharan Hariharan)",
+   "sha256": "bbd6e8e67c91e9ad2b96f6a8a0acd236a5a8b2df5d87615bb781c0d9c5ff5dc6",
+   "source_url": "https://www.eia.gov/dnav/pet/xls/PET_PRI_FUT_S1_D.xls"
+  },
+  {
+   "bytes": 3396096,
+   "path": "data/raw/PET_PRI_SPT_S1_D.xls",
+   "retrieved_at": "2026-10-24T12:03+05:30",
+   "retrieved_by": "Signal Syndicate team member (reported by Saicharan Hariharan)",
+   "sha256": "69eeff72e7abb794f68f305b882d9782d4bd758144ac30f4db22a468d3a8cd3b",
+   "source_url": "https://www.eia.gov/dnav/pet/xls/PET_PRI_SPT_S1_D.xls"
+  }
+ ],
+ "first_session": "1994-02-08",
+ "id": "DM-f5615282b75c",
+ "last_session": "2024-04-05",
+ "period_table_sha256": "aa7959390e6358445e677d0fcd78657725b0712d3b13b7ba9e44919aaf121704",
+ "schema_version": "1.0",
+ "series": [
+  {
+   "first_date": "2006-06-14",
+   "last_date": "2026-10-20",
+   "name": "U.S. Gulf Coast Ultra-Low Sulfur No 2 Diesel Spot Price (Dollars per Gallon)",
+   "observations": 5104,
+   "role": "physical price proxy S (Gulf Coast ULSD spot)",
+   "series_id": "EER_EPD2DXL0_PF4_RGC_DPG",
+   "unit": "Dollars per Gallon"
+  },
+  {
+   "first_date": "1980-01-02",
+   "last_date": "2024-04-05",
+   "name": "New York Harbor No. 2 Heating Oil Future Contract 1 (Dollars per Gallon)",
+   "observations": 9894,
+   "role": "futures Contract 1 (exit leg)",
+   "series_id": "EER_EPD2F_PE1_Y35NY_DPG",
+   "unit": "Dollars per Gallon"
+  },
+  {
+   "first_date": "1994-02-02",
+   "last_date": "2024-04-05",
+   "name": "New York Harbor No. 2 Heating Oil Future Contract 2 (Dollars per Gallon)",
+   "observations": 6746,
+   "role": "futures Contract 2 (entry leg)",
+   "series_id": "EER_EPD2F_PE2_Y35NY_DPG",
+   "unit": "Dollars per Gallon"
+  },
+  {
+   "first_date": "1980-01-02",
+   "last_date": "2024-04-05",
+   "name": "New York Harbor No. 2 Heating Oil Future Contract 3 (Dollars per Gallon)",
+   "observations": 10199,
+   "role": "futures Contract 3 (sizing reference F_ref only)",
+   "series_id": "EER_EPD2F_PE3_Y35NY_DPG",
+   "unit": "Dollars per Gallon"
+  }
+ ],
+ "sessions": 6044,
+ "sha256": "2631012ca501638e133a6cf7dc55364ea62d555809febd9c5811cfe50ad58592",
+ "spot_missing_on_sessions": 10
+}

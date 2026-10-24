@@ -32,19 +32,33 @@ A city bus agency buys diesel every month but fixes its fuel budget long before 
 
 ## Checkpoint 1 script (4:00 PM IST, about 75 seconds plus a 2-minute live screen)
 
-Setup before the call (on the presenting laptop): terminal 1 `uv run hedgeproof serve --mode rehearsal` (or `--mode test` if real data is not ingested), terminal 2 `uv run hedgeproof dashboard`, browser at 125%, notifications off, no personal tabs, never show environment variables.
+Setup 20 minutes before (presenting laptop, PowerShell, inside `hedgeproof`):
+
+1. `git pull`, then `uv run pytest -q` (expect `71 passed`).
+2. Terminal 1: `uv run hedgeproof serve --mode rehearsal` → note the OPERATOR CODE (do not show it on screen for long).
+3. Terminal 2: `uv run hedgeproof dashboard` → browser at http://127.0.0.1:8501, zoom 125%.
+4. Terminal 3: `uv run hedgeproof run research --lineage REHEARSAL-CP1 --agents scripted` (about 20 s).
+5. Close chat apps and notifications; no personal tabs; never show environment variables.
+
+Spoken update (every number below was verified on 24 Oct; if a live AI run happens before 3:15 PM, replace the bracket with its model, calls and measured cost):
 
 > **Problem.** A city bus agency fixes its fuel budget before it knows the diesel price. Futures can steady that budget, but only if the hedge fits the real exposure, survives an honest test and stays inside the agency's rules.
 >
-> **Working now.** [Only items verified by 3:15 PM.] Our trusted service computes every number and enforces twelve written rules. Generated estimator code runs only in a Docker sandbox with no network, a read-only filesystem and a non-root user; we verified that through the runner itself. Our five-role agent workflow runs end to end; [live AI run: say only if one ran, with model, calls and measured cost; otherwise: "today's agent runs on screen are a labelled scripted test double, because API funding is pending"].
+> **Working now.** We load the official EIA files, U.S. Gulf Coast diesel spot and New York Harbor futures, with file hashes, and map every position to one delivery contract. We checked that roll rule on the real prices: at 131 month boundaries the same-contract moves line up with a correlation of 0.99, versus 0.82 for the wrong rule. Generated estimator code runs only in a Docker sandbox with no network, a read-only filesystem and a non-root user, verified through our own runner. Our five-role agent workflow runs end to end; [today's runs on screen are a labelled scripted test double, because our API funding is still pending].
 >
-> **One observed result.** [Real-data example, only if ingested: "On 10 development months, a fixed 50% hedge changed budget-error standard deviation from $[x] to $[y]."] On screen: a request to hedge 150% (15 contracts) is blocked with EXPOSURE_CAP; nothing is resized, and a human cannot even approve it.
+> **One observed result.** On the 9 usable development months of 2017, budget-error standard deviation was $36,648 with no hedge, $23,615 with a fixed 50% hedge, and $20,053 with a simple 36-month regression hedge, which hit the 75% cap every month. That is a tiny development sample, not a result we claim. And on screen: a request to hedge 150%, fifteen contracts, is blocked for breaking the 75% cap and the cash-stress limit; nothing is resized, and a human cannot even approve it.
 >
-> **Limitation.** Historical paper replay; EIA futures data ends 5 April 2024; the gallons are a declared scenario.
+> **Limitation.** Historical paper replay with U.S. public data as a proxy; EIA futures end on 5 April 2024; the gallons are a declared scenario; one 2017 month is rejected for a missing price rather than patched.
 >
-> **Next.** Real-data validation, live agent runs within our $10 API budget, critique diagnostics, and the sealed holdout, opened once after checkpoint 2.
+> **Next.** Live agent runs within our $10 API budget, validation scoring of the agents' candidates, and the sealed holdout, which we open exactly once after checkpoint 2.
 
-Live screen order: dashboard header (mode, policy hash, holdout SEALED) → Test tab (data and baselines) → Check rules: click "Check a 150% request" (BLOCKED, every rule listed) → Research tab (agent decisions with tool calls and results) → Simulate tab (ledger).
+Live screen order (about 2 minutes):
+
+1. Header: mode REHEARSAL, data HISTORICAL MARKET REPLAY, policy hash, holdout SEALED (Saicharan).
+2. **Test** tab: split counts, the rejected June 2017 row, the three-strategy table and chart (Nikshep).
+3. **Research** tab: the run's decisions and tool calls, including the failed sandbox test and the repair (Kruthik).
+4. **Check rules** tab: click "Check a 150% request" → BLOCKED with EXPOSURE_CAP and CASH_STRESS_CAP; scroll the 12 rules (Lohith).
+5. If time: in **Simulate → Fault injection**, arm one lost acknowledgement (operator code); then terminal 3 `uv run hedgeproof run execute --lineage REHEARSAL-CP1 --agents scripted --request-contracts 15`; in **Approve**, approve the 5-contract order with the operator code; terminal 3 shows the lost acknowledgement and the status query by key; **Simulate** shows exactly one fill at $2.626 on 1 Apr 2024 (Lohith).
 
 ## Checkpoint 2 and final scripts
 

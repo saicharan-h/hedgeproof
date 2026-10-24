@@ -155,7 +155,8 @@ def block_bootstrap(errors: dict[str, np.ndarray], block: int, resamples: int, s
     rng = np.random.default_rng(seed)
     starts_max = n - block
     n_blocks = math.ceil(n / block)
-    deltas: dict[str, list[float]] = {k: [] for k in ("dvar_vs_unhedged", "dbar_vs_unhedged", "dvar_vs_fixed50", "dbar_vs_fixed50")}
+    keys = ("dvar_vs_unhedged", "dbar_vs_unhedged", "dvar_vs_fixed50", "dbar_vs_fixed50", "dstd_vs_unhedged", "dstd_vs_fixed50")
+    deltas: dict[str, list[float]] = {k: [] for k in keys}
     for _ in range(resamples):
         starts = rng.integers(0, starts_max + 1, size=n_blocks)
         idx = np.concatenate([np.arange(s, s + block) for s in starts])[:n]
@@ -164,6 +165,9 @@ def block_bootstrap(errors: dict[str, np.ndarray], block: int, resamples: int, s
         deltas["dbar_vs_unhedged"].append(bar95(a) - bar95(u))
         deltas["dvar_vs_fixed50"].append(float(np.var(a, ddof=1) - np.var(f, ddof=1)))
         deltas["dbar_vs_fixed50"].append(bar95(a) - bar95(f))
+        # Readable companion (not part of the preregistered set): change in standard deviation, in dollars.
+        deltas["dstd_vs_unhedged"].append(float(np.std(a, ddof=1) - np.std(u, ddof=1)))
+        deltas["dstd_vs_fixed50"].append(float(np.std(a, ddof=1) - np.std(f, ddof=1)))
     lo, hi = (1 - interval) / 2 * 100, (1 + interval) / 2 * 100
     return {
         "available": True,
