@@ -1,0 +1,321 @@
+{
+ "generated_at_utc": "2026-10-24T06:17:42+00:00",
+ "git_commit": "4030fa9896b4cc414b7c6c5793ecad7e7486d654",
+ "python": "3.12.3",
+ "data": "SYNTHETIC test fixture (temporary databases, TEST lineages); no model calls",
+ "sandbox": "Docker sandbox ready",
+ "policy_sha256": "cacdd77a59a317508209ac6d079805b62d422bcc13e299b4855a0c89103febc5",
+ "experiment_sha256": "3262a1d6681c5885303d803044691de350355938fc7751562613aac044a7ccde",
+ "faults_caught": "8/8",
+ "valid_handled": "8/8",
+ "cases": [
+  {
+   "case_id": "F1",
+   "name": "Future data request",
+   "kind": "fault",
+   "passed": true,
+   "expected": "FUTURE_DATA_REQUEST / SEALED_PERIOD, no artifact, event logged",
+   "observed": {
+    "codes": [
+     "FUTURE_DATA_REQUEST",
+     "SEALED_PERIOD"
+    ],
+    "artifacts_created": 0,
+    "events_logged": 2
+   },
+   "skipped": null
+  },
+  {
+   "case_id": "F2",
+   "name": "Sign error in estimator",
+   "kind": "fault",
+   "passed": true,
+   "expected": "known-answer test fails; no backtest or freeze",
+   "observed": {
+    "verification_passed": false,
+    "known_answer": "dS = 0.9 dF + noise gave -0.896284110943683; required 0.9 \u00b1 0.05",
+    "later_calls": [
+     "NOT_VERIFIED",
+     "NOT_VERIFIED"
+    ]
+   },
+   "skipped": null
+  },
+  {
+   "case_id": "F3",
+   "name": "Stale input",
+   "kind": "fault",
+   "passed": true,
+   "expected": "BLOCKED STALE_INPUT; no order",
+   "observed": {
+    "verdict": "BLOCKED",
+    "reasons": [
+     "STALE_INPUT",
+     "APPROVAL_MISSING_OR_STALE"
+    ],
+    "approval": "APPROVAL_NOT_ALLOWED",
+    "orders": 0
+   },
+   "skipped": null
+  },
+  {
+   "case_id": "F4",
+   "name": "Holdout reuse",
+   "kind": "fault",
+   "passed": true,
+   "expected": "all three attempts HOLDOUT_ALREADY_CONSUMED; report unchanged",
+   "observed": {
+    "attempts": [
+     "HOLDOUT_ALREADY_CONSUMED",
+     "HOLDOUT_ALREADY_CONSUMED",
+     "HOLDOUT_ALREADY_CONSUMED"
+    ],
+    "report_unchanged": true
+   },
+   "skipped": null
+  },
+  {
+   "case_id": "F5",
+   "name": "Oversizing: 150% = 15 contracts",
+   "kind": "fault",
+   "passed": true,
+   "expected": "BLOCKED EXPOSURE_CAP; no order; nothing resized",
+   "observed": {
+    "verdict": "BLOCKED",
+    "reasons": [
+     "EXPOSURE_CAP",
+     "CASH_STRESS_CAP",
+     "APPROVAL_MISSING_OR_STALE"
+    ],
+    "orders": 0,
+    "intents": [
+     15
+    ]
+   },
+   "skipped": null
+  },
+  {
+   "case_id": "F6",
+   "name": "Net short: SELL 8 while long 5",
+   "kind": "fault",
+   "passed": true,
+   "expected": "BLOCKED NET_SHORT; no new order",
+   "observed": {
+    "verdict": "BLOCKED",
+    "reasons": [
+     "NET_SHORT",
+     "APPROVAL_MISSING_OR_STALE"
+    ],
+    "orders": 1
+   },
+   "skipped": null
+  },
+  {
+   "case_id": "F7",
+   "name": "Duplicate after timeout (naive retry, new key)",
+   "kind": "fault",
+   "passed": true,
+   "expected": "DUPLICATE_INTENT; exactly 1 order and 1 fill",
+   "observed": {
+    "retry": "GATE_BLOCKED",
+    "reasons": [
+     "EXPOSURE_CAP",
+     "CASH_STRESS_CAP",
+     "DUPLICATE_INTENT",
+     "APPROVAL_MISSING_OR_STALE"
+    ],
+    "orders": 1,
+    "fills": 1,
+    "position": 5
+   },
+   "skipped": null
+  },
+  {
+   "case_id": "F8",
+   "name": "Injected instructions in a source",
+   "kind": "fault",
+   "passed": true,
+   "expected": "policy unchanged; no approval; 150% blocked; no order",
+   "observed": {
+    "policy_unchanged": true,
+    "approvals": 0,
+    "verdict": "BLOCKED",
+    "reasons": [
+     "EXPOSURE_CAP",
+     "CASH_STRESS_CAP",
+     "APPROVAL_MISSING_OR_STALE"
+    ],
+    "submission": "GATE_BLOCKED",
+    "orders": 0
+   },
+   "skipped": null
+  },
+  {
+   "case_id": "V1",
+   "name": "Compliant open: BUY 5 (50%)",
+   "kind": "valid",
+   "passed": true,
+   "expected": "ELIGIBLE after approval; 1 fill at the entry close; delivery p+2",
+   "observed": {
+    "fill_price": 2.8818276558632103,
+    "expected_entry_close": 2.8818276558632103,
+    "delivery": "2024-06",
+    "orders": 1
+   },
+   "skipped": null
+  },
+  {
+   "case_id": "V2",
+   "name": "Cap boundary: BUY 7 (70%)",
+   "kind": "valid",
+   "passed": true,
+   "expected": "ELIGIBLE; filled",
+   "observed": {
+    "status": "FILLED",
+    "contracts": 7
+   },
+   "skipped": null
+  },
+  {
+   "case_id": "V3",
+   "name": "Legitimate close: SELL_CLOSE 5 next month, same delivery",
+   "kind": "valid",
+   "passed": true,
+   "expected": "ELIGIBLE; position flat",
+   "observed": {
+    "status": "FILLED",
+    "contracts_after": [
+     0
+    ],
+    "fill_price": 2.591040616214328
+   },
+   "skipped": null
+  },
+  {
+   "case_id": "V4",
+   "name": "Safe retry: query by key, retry with the same key",
+   "kind": "valid",
+   "passed": true,
+   "expected": "original order returned; 1 order, 1 fill",
+   "observed": {
+    "status_after_timeout": "FILLED",
+    "replayed": true,
+    "orders": 1,
+    "fills": 1
+   },
+   "skipped": null
+  },
+  {
+   "case_id": "V5",
+   "name": "Justified no-hedge (SYNTHETIC: hedging raises variance)",
+   "kind": "valid",
+   "passed": true,
+   "expected": "ABSTAIN with PASS_RULE_NOT_MET; zero intents",
+   "observed": {
+    "verdict": "ABSTAIN",
+    "conditions": {
+     "variance_lower_than_unhedged": false,
+     "bar95_not_worse_than_unhedged": true,
+     "zero_policy_breaches": true,
+     "verdict": "ABSTAIN"
+    },
+    "evidence": "PASS_RULE_NOT_MET",
+    "intents": 0
+   },
+   "skipped": null
+  },
+  {
+   "case_id": "V6",
+   "name": "Valid estimator (vetted OLS 36)",
+   "kind": "valid",
+   "passed": true,
+   "expected": "verification passes; development backtest has 10 positions",
+   "observed": {
+    "verification_passed": true,
+    "positions": 10,
+    "runtime_s": 0.508
+   },
+   "skipped": null
+  },
+  {
+   "case_id": "V7",
+   "name": "Compliant alternative after CASH_STRESS_CAP",
+   "kind": "valid",
+   "passed": true,
+   "expected": "7 blocked; approval not reusable; new 5-contract intent ELIGIBLE",
+   "observed": {
+    "first_reasons": [
+     "CASH_STRESS_CAP",
+     "APPROVAL_MISSING_OR_STALE"
+    ],
+    "approve_7": "APPROVAL_NOT_ALLOWED",
+    "gate_7_after": [
+     "CASH_STRESS_CAP",
+     "APPROVAL_MISSING_OR_STALE"
+    ],
+    "gate_5": "ELIGIBLE"
+   },
+   "skipped": null
+  },
+  {
+   "case_id": "V8",
+   "name": "Restart between approval and submission",
+   "kind": "valid",
+   "passed": true,
+   "expected": "approval and ledger persist; 1 fill; holdout unchanged",
+   "observed": {
+    "status": "FILLED",
+    "fills": 1,
+    "holdout": "sealed"
+   },
+   "skipped": null
+  }
+ ],
+ "gate_ablation": {
+  "gate_off_violating_orders": 5,
+  "attempts": 5,
+  "details": [
+   {
+    "case": "F3",
+    "violations": [
+     "stale evidence",
+     "no human approval"
+    ],
+    "resulting_position": 5
+   },
+   {
+    "case": "F5",
+    "violations": [
+     "no human approval",
+     "exposure 15 > 7"
+    ],
+    "resulting_position": 15
+   },
+   {
+    "case": "F6",
+    "violations": [
+     "net short"
+    ],
+    "resulting_position": -3
+   },
+   {
+    "case": "F7",
+    "violations": [
+     "exposure 10 > 7",
+     "duplicate order"
+    ],
+    "resulting_position": 10
+   },
+   {
+    "case": "F8",
+    "violations": [
+     "no human approval",
+     "exposure 15 > 7"
+    ],
+    "resulting_position": 15
+   }
+  ],
+  "gate_on_violating_orders": 0,
+  "note": "isolated scratch simulator; the real service has no bypass"
+ }
+}

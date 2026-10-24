@@ -176,6 +176,14 @@ def create_app(core: TrustedCore) -> FastAPI:
     def evidence(body: EvidenceIn) -> dict[str, Any]:
         return core.build_evidence_packet(body.lineage_id, body.run_id, body.strategy)
 
+    @app.post("/decisions")
+    def decisions(body: dict[str, Any]) -> dict[str, Any]:
+        return core.record_decision(body)
+
+    @app.get("/intents/{intent_hash}")
+    def intent(intent_hash: str) -> dict[str, Any]:
+        return core.get_intent(intent_hash)
+
     @app.post("/intents")
     def intents(body: IntentIn) -> dict[str, Any]:
         return core.register_intent(body.terms, body.requested_by, body.note)
