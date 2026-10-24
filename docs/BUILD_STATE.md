@@ -1,6 +1,6 @@
 # HedgeProof build state
 
-Updated: Sat 24 Oct 2026, 12:00 PM IST. Labels: PLANNED, IMPLEMENTED, VERIFIED (command output or inspected file), BLOCKED, DEFERRED.
+Updated: Sat 24 Oct 2026, 11:58 AM IST. Labels: PLANNED, IMPLEMENTED, VERIFIED (command output or inspected file), BLOCKED, DEFERRED.
 
 ## Event facts
 
@@ -42,7 +42,7 @@ Updated: Sat 24 Oct 2026, 12:00 PM IST. Labels: PLANNED, IMPLEMENTED, VERIFIED (
 
 ## Tests
 
-- `uv run pytest -q`: **56 passed** (24 Oct, 12:05 PM IST; includes 3 mock-transport tests of the live Claude client: request shape, settlement, 429 release, timeout kept as uncertain), deterministic, no API calls; Docker sandbox used by F2, V6, sandbox and workflow tests.
+- `uv run pytest -q`: **56 passed** (24 Oct, 11:56 AM IST; includes 3 mock-transport tests of the live Claude client: request shape, settlement, 429 release, timeout kept as uncertain), deterministic, no API calls; Docker sandbox used by F2, V6, sandbox and workflow tests.
 
 ## Config hashes (SHA-256 of canonical JSON of parsed TOML)
 
