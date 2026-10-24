@@ -118,7 +118,7 @@ def cmd_smoke(args: argparse.Namespace) -> None:
     import httpx
 
     from hedgeproof.agents.llm import ClaudeClient, ModelCallError
-    from hedgeproof.agents.roles import RESEARCH_TOOLS
+    from hedgeproof.agents.roles import RESEARCH_TOOLS, ROLE_SPECS
 
     rt = load_settings().runtime
     prov = rt["provider"]
@@ -142,12 +142,13 @@ def cmd_smoke(args: argparse.Namespace) -> None:
     tool = [t for t in RESEARCH_TOOLS if t["name"] == "data_profile"]
     system = [{"type": "text", "text": "You are a connectivity test. Follow the user's instruction exactly."}]
     with _spend() as sc:
-        def attempt(label: str, tools: list, send_effort: bool, strict: bool, prompt: str) -> bool:
-            client = ClaudeClient(sc, "dev", effort="low", timeout_s=60, max_attempts=1,
+        def attempt(label: str, tools: list, send_effort: bool, strict: bool, prompt: str,
+                    sys_blocks: list | None = None, effort: str = "low", max_tokens: int = 300) -> bool:
+            client = ClaudeClient(sc, "dev", effort=effort, timeout_s=60, max_attempts=1,
                                   provider={**prov, "send_effort": send_effort, "strict_tools": strict})
             try:
-                r = client.create(model=model_id, system=system, messages=[{"role": "user", "content": prompt}], tools=tools,
-                                  max_tokens=300, run_id=new_id("SMOKE"))
+                r = client.create(model=model_id, system=sys_blocks or system, messages=[{"role": "user", "content": prompt}], tools=tools,
+                                  max_tokens=max_tokens, run_id=new_id("SMOKE"))
             except ModelCallError as e:
                 print(f"  {label}: FAILED ({e})")
                 return False
@@ -175,6 +176,20 @@ def cmd_smoke(args: argparse.Namespace) -> None:
                 rec = None
             print(f"RECOMMENDED config/runtime.toml [provider] settings: {rec}" if rec
                   else "RESULT: tool calls fail on this provider; do not start live research runs.")
+        # The exact shape of a research run's first request (role prompt with prompt caching, all research tools,
+        # the configured effort and max_tokens): the small probes above can pass while this one is refused.
+        role_text, role_tools, _, role_max = ROLE_SPECS["research"]
+        cached = [{"type": "text", "text": role_text, "cache_control": {"type": "ephemeral"}}]
+        effort, send_e, strict_t = rt["models"]["effort"], bool(prov.get("send_effort", True)), bool(prov.get("strict_tools", True))
+        if attempt("6 research request as a run sends it", role_tools, send_e, strict_t, ask, cached, effort, role_max):
+            print("RESULT: a research run's first request is accepted.")
+        else:
+            variants = [("7 same, effort not sent", False, strict_t, cached),
+                        ("8 same, tools not strict", send_e, False, cached),
+                        ("9 same, no prompt caching", send_e, strict_t, [{"type": "text", "text": role_text}])]
+            passing = [label for label, se, st, blocks in variants if attempt(label, role_tools, se, st, ask, blocks, effort, role_max)]
+            print(f"RESULT: the research request is refused as configured; it is accepted with: {passing}" if passing
+                  else "RESULT: the research request is refused in every variant; see the error text above.")
         s = sc.summary()
         print(f"spend ledger: committed ${s['committed_usd']:.6f} of ${s['total_allowance_usd']:.2f}")
 
