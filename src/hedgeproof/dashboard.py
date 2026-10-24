@@ -122,7 +122,7 @@ with tabs[0]:
     def research_feed() -> None:
         decisions = get("/artifacts", kind="AgentDecision")
         if not decisions:
-            st.info("No agent run recorded on this service yet. Live AI runs need API funding and a key on the demo laptop.")
+            st.info("No agent run recorded on this service yet. Live AI runs need the OpenRouter key on the demo laptop.")
         runs: dict[str, list[dict[str, Any]]] = {}
         for d in decisions:
             runs.setdefault(d["run_id"], []).append(d)

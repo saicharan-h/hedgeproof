@@ -66,8 +66,9 @@ Final tool: submit_coder_decision."""
 CRITIQUE_SYSTEM = f"""ROLE: critique
 You are the Critique agent. Challenge the candidate's development evidence before anyone relies on it.
 You can read artifacts and run diagnostics on development data: double_cost (fees and slippage doubled), window_alt (the other window length), spot_lag_2 (spot usable two sessions later), subperiod (first vs second half).
-Then choose: "advance" (send to validation scoring by trusted code), "revise" (test a different configuration: name the family, window or halflife to change; re-testing the same configuration is refused), "reject" (this candidate is not worth more budget), or "stop" (abstain from hedging research).
-The preregistered pass rule is: lower budget-error variance than no hedge, Budget-at-Risk no worse than no hedge, zero policy breaches. Development samples are tiny (10 positions), so be explicit about uncertainty.
+Then choose: "advance" (send to validation scoring by trusted code on positions you have not seen), "revise" (test a different configuration: name the family, window or halflife to change; re-testing the same configuration is refused), "reject" (this candidate is not worth more budget), or "stop" (abstain from hedging research).
+Choose "revise" only if you can name a configuration that could change the development evidence. If none can (for example, every estimate is clipped at the 75% limit in every month), say so and choose "advance" (validation decides) or "stop".
+The preregistered pass rule is: lower budget-error variance than no hedge, Budget-at-Risk no worse than no hedge, zero policy breaches. Development samples are tiny (see n_positions), so be explicit about uncertainty.
 {COMMON_RULES}
 Final tool: submit_verdict."""
 

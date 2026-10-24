@@ -1,6 +1,6 @@
 # HedgeProof build state
 
-Updated: Sat 24 Oct 2026, 2:46 PM IST. Labels: PLANNED, IMPLEMENTED, VERIFIED (command output or inspected file), BLOCKED, DEFERRED.
+Updated: Sat 24 Oct 2026, 3:37 PM IST. Labels: PLANNED, IMPLEMENTED, VERIFIED (command output or inspected file), BLOCKED, DEFERRED.
 
 ## Event facts
 
@@ -15,7 +15,8 @@ Updated: Sat 24 Oct 2026, 2:46 PM IST. Labels: PLANNED, IMPLEMENTED, VERIFIED (c
 - Nikshep's commits on `main`: `102f55e` (Indian scenario on SYNTHETIC-INDIA data, validators, Vercel showcase, OpenAI-format OpenRouter client, docs) and `234e927` (closes DB handles in his tests).
 - PR #4 (OpenRouter provider D-034, Vercel hardening D-035) is merged: `main` = `65b980c`.
 - The rewritten history shares no commit with the original (even "Initial commit" changed), so clones made before 1:10 PM cannot `git pull` ("refusing to merge unrelated histories"). The demo laptop's clone was reset to `origin/main` (~2:00 PM), its old state kept on a local branch `laptop-old-history`. Teammates with older clones must save their own work, then do the same.
-- On the branch for PR #5: research-loop fixes found by the first live run (D-037).
+- PR #5 (research-loop fixes, D-037) merged by Saicharan: `main` = `55089cb`.
+- PR #6 (Windows test-temp fix, critique prompt, the two live-run traces, docs; D-038) merged by Claude, as authorized by Saicharan while away (~3:00 PM: "full control … i'll not be here to merge"); no force-push.
 
 ## Environment facts
 
@@ -27,7 +28,7 @@ Updated: Sat 24 Oct 2026, 2:46 PM IST. Labels: PLANNED, IMPLEMENTED, VERIFIED (c
 | Demo laptop: `uv sync` and `uv run hedgeproof sandbox-build` | Reported PASSED by Saicharan (12:45 IST) |
 | Demo laptop: `uv run pytest -q` | PR #1 code: 24 failed, 32 passed (WinError 32). After PR #2: **64 passed**, reported by Saicharan (~1:00 PM IST). Real-data tests (PR #3) not yet run there |
 | Demo laptop: `uv run hedgeproof smoke` on `65b980c` | PASSED (output pasted by Saicharan, ~2:15 PM): OpenRouter lists `anthropic/claude-haiku-5.5` at $0.10 / $0.50 and `anthropic/claude-sonnet-5.5` at $2.00 / $10.00 per million tokens, at or below the configured prices; a plain call and a strict-tool + effort call were both accepted (current settings kept); cost $0.000082 |
-| Demo laptop: `uv run pytest -q` after the reset to `65b980c` | Not yet reported |
+| Demo laptop: `uv run pytest -q` on `55089cb` | **120 passed, 21 errors** (reported ~3:00 PM). No assertion failed (the 120 include the Docker sandbox, real-data and workflow tests). Every error is `PermissionError [WinError 5] Access is denied` on `%TEMP%\pytest-of-saich` while pytest creates `tmp_path`, plus 2 warnings for an unwritable `.pytest_cache`; likely those folders were made by an administrator (elevated) shell. Fix in PR #6 (fresh temporary root per run, no cache folder); Windows re-run pending |
 | Dependencies resolve and lock (77 packages, `uv.lock`) | VERIFIED |
 
 ## Data version (HISTORICAL MARKET REPLAY, EIA public data)
@@ -49,7 +50,8 @@ Updated: Sat 24 Oct 2026, 2:46 PM IST. Labels: PLANNED, IMPLEMENTED, VERIFIED (c
 - **Development baselines** (`uv run hedgeproof baseline`, `results/development_baselines.json`, n = 9 scored positions, Feb-Nov 2017 excluding June): budget-error standard deviation no hedge $36,648, fixed 50% $23,615, fixed script OLS-36 $20,053; BaR95 $64,932 / $41,210 / $31,721; 0 policy breaches. The raw OLS ratio was 1.05-1.10 every month, so the 75% cap bound (7 contracts). 90% block-bootstrap interval for the change in standard deviation, OLS-36 vs no hedge: -$23,217 to -$8,112; vs fixed 50%: -$6,290 to -$546. Tiny sample; development data only.
 - **Rehearsal flow on real data** (cloud, scripted test double, rehearsal DB): research → coder (repair after a failed zero-variance test) → critique → stopped at development; execution: 15-contract request BLOCKED (EXPOSURE_CAP; CASH_STRESS_CAP $412,650 > $250,000), 5 contracts approved with the operator code, lost acknowledgement reconciled by key, 1 paper fill at $2.626 on 1 Apr 2024.
 - Deterministic evaluation (SYNTHETIC fixtures): faults 8/8, valid 8/8; gate ablation 5 violating orders gate-off vs 0 gate-on (`results/EVAL_SUMMARY.md`).
-- **First live research run** `RUN-e56d7478db40` (demo laptop, rehearsal service on real EIA data, lineage `REHEARSAL-LIVE1`, `anthropic/claude-haiku-5.5` via OpenRouter, effort medium, code `65b980c`; console output pasted by Saicharan ~2:38 PM): 21 model calls, 68,906 input and 9,469 output tokens, **measured cost $0.0093**. Research proposed OLS on 36 positions; the coder's estimator passed sandbox verification first time and its development backtest matched the fixed script (std $20,053); the critique ran all four diagnostics and asked to revise three times, but each revision resubmitted the same configuration, so the run ended **ABSTAIN** (candidate budget for the run used up). The research decision cited data-view names as evidence IDs; the trusted service removed and flagged them. Fixes: D-037. Trace: `results/runs/RUN-e56d7478db40.json` on the laptop, not yet in the repository.
+- **First live research run** `RUN-e56d7478db40` (demo laptop, rehearsal service on real EIA data, lineage `REHEARSAL-LIVE1`, `anthropic/claude-haiku-5.5` via OpenRouter, effort medium, code `65b980c`; console output pasted by Saicharan ~2:38 PM): 21 model calls, 68,906 input and 9,469 output tokens, **measured cost $0.0093**. Research proposed OLS on 36 positions; the coder's estimator passed sandbox verification first time and its development backtest matched the fixed script (std $20,053); the critique ran all four diagnostics and asked to revise three times, but each revision resubmitted the same configuration, so the run ended **ABSTAIN** (candidate budget for the run used up). The research decision cited data-view names as evidence IDs; the trusted service removed and flagged them. Fixes: D-037. Trace: `results/runs/RUN-e56d7478db40.json` (attached by Saicharan; committed as attached, with Windows line endings normalized to LF by `.gitattributes`).
+- **Second live research run** `RUN-3f1c27ab6816` (code `55089cb` with the D-037 fixes, lineage `REHEARSAL-LIVE2`, same model and settings): 21 model calls, 80,797 input and 10,968 output tokens, **$0.0111**, 86 s. Research cited only real source IDs. Revisions now changed the configuration: OLS 36 → EWMA halflife 12 (the coder declined the critique's "shrink toward 0.5" because it would fail the known-answer test) → EWMA halflife 6 with 5% shrink. Each verified first time; development std stayed $20,053 because the ratio was clipped at 75% in all 9 months, which the critique stated, yet it kept choosing revise, so the run ended **ABSTAIN** (candidate budget used). Prompt clarified (D-038). Trace: `results/runs/RUN-3f1c27ab6816.json`.
 
 ## Components
 
@@ -90,12 +92,12 @@ Updated: Sat 24 Oct 2026, 2:46 PM IST. Labels: PLANNED, IMPLEMENTED, VERIFIED (c
 - Budget: $10 total ($7 dev / $3 final), $1 provisional per run (D-018).
 - Provider: **OpenRouter**. The team reports buying **$10 of OpenRouter credit** (24 Oct, ~1:20 PM IST). The usable balance after any purchase fee is **not yet confirmed** (read it on OpenRouter's credits page). Anthropic Console balance: $0, unused.
 - OpenRouter key on the laptop (`OPENROUTER_API_KEY`): set (the smoke test authenticated). Prices and feature support (strict tools, effort): **verified by the smoke test** (see Environment facts).
-- Measured application spend so far: **$0.0094** committed in the laptop's ledger (`var/spend.db`): smoke test $0.000082 + first live run $0.0093. Remaining in the app's allowance: $9.9906 ($7 dev / $3 final phases). OpenRouter's activity page is the authoritative bill.
+- Measured application spend so far: **$0.0205** committed in the laptop's ledger (`var/spend.db`): smoke test $0.000082 + run 1 $0.0093 + run 2 $0.0111. Remaining in the app's allowance: $9.9795 ($7 dev / $3 final phases). OpenRouter's activity page is the authoritative bill.
 
 ## Research state
 
 - Experiment `HP-FINAL`: not started (0 candidates, 0 repairs). Validation has not been consulted for any candidate. Holdout: **SEALED** (never opened). Rehearsal lineages on real data stop at development; TEST lineages use synthetic data only.
-- Laptop rehearsal database: `REHEARSAL-LIVE1` has 3 candidates (all OLS, 36 positions; development only).
+- Laptop rehearsal database: `REHEARSAL-LIVE1` has 3 candidates (all OLS, 36 positions); `REHEARSAL-LIVE2` has 3 (OLS 36; EWMA halflife 12; EWMA halflife 6 with shrink). Development only.
 
 ## Blockers
 
@@ -104,6 +106,6 @@ Updated: Sat 24 Oct 2026, 2:46 PM IST. Labels: PLANNED, IMPLEMENTED, VERIFIED (c
 
 ## Next
 
-1. Merge PR #5; laptop: `git pull`, restart the trusted service (it holds the old code), second practice run on a fresh lineage (`REHEARSAL-LIVE2`); attach both traces from `results/runs/`.
-2. One run with the research model (`anthropic/claude-sonnet-5.5`); record cost and runtime.
-3. Rehearse the checkpoint-1 demo (`docs/DEMO_GUIDE.md`).
+1. Laptop: `git pull`, `uv run pytest -q` (expect 142 passed on Windows too).
+2. Checkpoint 1 at 4:00 PM (`docs/DEMO_GUIDE.md`).
+3. Restart the trusted service, then one run with the research model (`anthropic/claude-sonnet-5.5`, lineage `REHEARSAL-LIVE3`); record cost and runtime.
