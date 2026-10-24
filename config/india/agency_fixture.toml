@@ -1,0 +1,12 @@
+# Declared agency scenario for the INDIAN scenario (FIXTURE, not real agency data).
+#
+# Fictional Indian city bus operator styled on BMTC (Bengaluru). The underlying
+# market data is SYNTHETIC-INDIA (Indian-flavoured synthetic prices) unless real
+# PPAC + MCX files are ingested. Not a validated deployment for any real agency.
+
+label = "Fixture: mid-size Indian city bus agency (illustrative, Indian scenario)"
+data_label = "FIXTURE"
+forecast_gallons_per_month = 1500000
+currency = "INR"
+currency_symbol = "₹"
+note = "Declared scenario input for the Indian scenario. Forecast in litres per month. Not agency data, not a forecast, not real Indian market data."

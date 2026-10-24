@@ -21,34 +21,75 @@ def _load_sources(inject: bool) -> list[dict]:
     return src
 
 
-def build_core(mode: str, synthetic: bool = False, db: str | None = None, inject_source: bool = False, operator_code: str | None = None):
+def build_core(mode: str, synthetic: bool = False, db: str | None = None, inject_source: bool = False,
+              operator_code: str | None = None, config_dir: str | None = None, data_dir: str | None = None,
+              scenario: str = "us"):
     from hedgeproof.ingest import load_manifest, manifest_for, verify_raw_files
     from hedgeproof.sandbox import DockerSandbox
     from hedgeproof.trusted.core import TrustedCore
     from hedgeproof.trusted.store import Store
 
-    settings = load_settings()
-    if synthetic or mode == "test":
-        from hedgeproof.synthetic import synthetic_market
+    if config_dir is None and scenario == "india":
+        config_dir = str(REPO_ROOT / "config" / "india")
+    if data_dir is None and scenario == "india":
+        data_dir = str(REPO_ROOT / "data" / "india")
+    dd = Path(data_dir) if data_dir else DATA_DIR
+    settings = load_settings(Path(config_dir) if config_dir else None)
 
+    if synthetic or mode == "test":
         if mode != "test":
             raise SystemExit("SYNTHETIC data is only allowed in --mode test")
-        md = synthetic_market()
-        manifest = manifest_for(md, settings, [], "SYNTHETIC")[0].model_dump(mode="json")
-        label = "SYNTHETIC TEST FIXTURE"
-    else:
-        from hedgeproof.data import load_market_data
+        if scenario == "india":
+            from hedgeproof.india import synthetic_indian_market
+            from hedgeproof.ingest import _indian_series_info
 
-        manifest = load_manifest()
-        if manifest is None:
-            raise SystemExit("No data/manifest.json. Put the EIA files in data/raw/ and run: uv run hedgeproof ingest ...")
-        problems = verify_raw_files(manifest, REPO_ROOT)
-        if problems:
-            raise SystemExit(f"Raw data does not match the manifest: {problems}")
-        md = load_market_data(DATA_DIR / "raw")
-        label = "HISTORICAL MARKET REPLAY"
-    db_path = db or str(VAR_DIR / {"final": "hedgeproof.db", "rehearsal": "rehearsal.db", "test": "synthetic.db"}[mode])
-    sources, sandbox = _load_sources(inject_source), DockerSandbox()
+            md = synthetic_indian_market()
+            manifest = manifest_for(md, settings, [], "SYNTHETIC-INDIA", series_info=_indian_series_info,
+                                    attribution="Source: SYNTHETIC-INDIA (illustrative)")[0].model_dump(mode="json")
+            label = "SYNTHETIC-INDIA TEST FIXTURE"
+        else:
+            from hedgeproof.synthetic import synthetic_market
+
+            md = synthetic_market()
+            manifest = manifest_for(md, settings, [], "SYNTHETIC")[0].model_dump(mode="json")
+            label = "SYNTHETIC TEST FIXTURE"
+    else:
+        if scenario == "india":
+            from hedgeproof.india import load_indian_market_data
+
+            manifest = load_manifest(dd)
+            if manifest is None:
+                raise SystemExit("No data/manifest.json. Put the PPAC/MCX files in data/india/raw/ and run: uv run hedgeproof ingest --scenario india ...")
+            problems = verify_raw_files(manifest, REPO_ROOT)
+            if problems:
+                raise SystemExit(f"Raw data does not match the manifest: {problems}")
+            md = load_indian_market_data(dd / "raw")
+            label = "HISTORICAL MARKET REPLAY (Indian scenario)"
+        else:
+            from hedgeproof.data import load_market_data
+
+            manifest = load_manifest(dd)
+            if manifest is None:
+                raise SystemExit("No data/manifest.json. Put the EIA files in data/raw/ and run: uv run hedgeproof ingest ...")
+            problems = verify_raw_files(manifest, REPO_ROOT)
+            if problems:
+                raise SystemExit(f"Raw data does not match the manifest: {problems}")
+            md = load_market_data(dd / "raw")
+            label = "HISTORICAL MARKET REPLAY"
+
+    if scenario == "india":
+        db_path = db or str(VAR_DIR / {"final": "hedgeproof_india.db", "rehearsal": "rehearsal_india.db", "test": "synthetic_india.db"}[mode])
+    else:
+        db_path = db or str(VAR_DIR / {"final": "hedgeproof.db", "rehearsal": "rehearsal.db", "test": "synthetic.db"}[mode])
+
+    sources_path = dd / "sources" / "sources.json"
+    if sources_path.exists():
+        sources = json.loads(sources_path.read_text())
+        if inject_source:
+            sources.append(json.loads((REPO_ROOT / "tests" / "fixtures" / "injected_source.json").read_text()))
+    else:
+        sources = _load_sources(inject_source)
+    sandbox = DockerSandbox()
     # Open the database last: the core owns the store and closes it if its own construction fails.
     return TrustedCore(settings, Store(db_path), md, mode, manifest, sandbox=sandbox, operator_code=operator_code,
                        data_label=label, sources=sources)
@@ -61,7 +102,7 @@ def cmd_serve(args: argparse.Namespace) -> None:
     from hedgeproof.trusted.service import create_app
 
     code = new_operator_code()
-    core = build_core(args.mode, args.synthetic, args.db, args.inject_source, code)
+    core = build_core(args.mode, args.synthetic, args.db, args.inject_source, code, scenario=getattr(args, "scenario", "us"))
     h = core.health()
     bar = "=" * 64
     print(bar)
@@ -91,7 +132,16 @@ def cmd_ingest(args: argparse.Namespace) -> None:
     from hedgeproof.data import parse_ist
     from hedgeproof.ingest import ingest
 
-    out = ingest(load_settings(), DATA_DIR / "raw", parse_ist(args.retrieved_at), args.retrieved_by)
+    scenario = getattr(args, "scenario", "us")
+    if scenario == "india":
+        cfg_dir = REPO_ROOT / "config" / "india"
+        data_dir = DATA_DIR / "india"
+    else:
+        cfg_dir = None
+        data_dir = DATA_DIR
+    settings = load_settings(cfg_dir if cfg_dir else None)
+    raw_dir = data_dir / "raw"
+    out = ingest(settings, raw_dir, parse_ist(args.retrieved_at), args.retrieved_by, out_dir=data_dir, scenario=scenario)
     m = out["manifest"]
     print(json.dumps({"manifest_id": m["id"], "manifest_sha256": m["sha256"], "split_counts": out["split_counts"],
                       "sessions": m["sessions"], "spot_missing_on_sessions": m["spot_missing_on_sessions"],
@@ -129,6 +179,7 @@ def main(argv: list[str] | None = None) -> None:
     s.add_argument("--db", default=None, help="SQLite path (default var/<mode>.db)")
     s.add_argument("--synthetic", action="store_true", help="SYNTHETIC data (test mode only)")
     s.add_argument("--inject-source", action="store_true", help="add the untrusted injected memo (scenario E2)")
+    s.add_argument("--scenario", choices=["us", "india"], default="us", help="which scenario (config + data) to run")
     s.set_defaults(fn=cmd_serve)
 
     d = sub.add_parser("dashboard", help="start the Streamlit dashboard on localhost")
@@ -136,9 +187,10 @@ def main(argv: list[str] | None = None) -> None:
     d.add_argument("--service", default=f"http://127.0.0.1:{DEFAULT_PORT}")
     d.set_defaults(fn=cmd_dashboard)
 
-    i = sub.add_parser("ingest", help="hash the raw EIA files and build the manifest and period table")
+    i = sub.add_parser("ingest", help="hash the raw files and build the manifest and period table")
     i.add_argument("--retrieved-at", required=True, help="download time reported by the team, IST, e.g. 2026-10-24T12:30")
     i.add_argument("--retrieved-by", required=True, help="who downloaded the files")
+    i.add_argument("--scenario", choices=["us", "india"], default="us", help="which scenario to ingest")
     i.set_defaults(fn=cmd_ingest)
 
     b = sub.add_parser("sandbox-build", help="build the hedgeproof-sandbox Docker image")

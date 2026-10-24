@@ -21,6 +21,9 @@ import streamlit as st
 URL = os.environ.get("HEDGEPROOF_SERVICE_URL", "http://127.0.0.1:8765")
 st.set_page_config(page_title="HedgeProof", page_icon="⛽", layout="wide")
 
+CURRENCY_SYMBOL = "$"
+VOLUME_UNIT = "gallons"
+
 RULE_NAMES = {
     "G01": "Evidence exists", "G02": "Evidence unchanged (hashes)", "G03": "Current policy version", "G04": "Fresh data",
     "G05": "Approved instrument and month", "G06": "Never net short", "G07": "Within 75% of forecast",
@@ -62,7 +65,7 @@ def post(path: str, body: dict[str, Any] | None = None, code: str | None = None)
 
 
 def money(x: float | None) -> str:
-    return "n/a" if x is None or x != x else f"${x:,.0f}"
+    return "n/a" if x is None or x != x else f"{CURRENCY_SYMBOL}{x:,.0f}"
 
 
 try:
@@ -72,6 +75,10 @@ except Exception as e:  # noqa: BLE001
     st.stop()
 
 policy = get("/policy")
+CURRENCY_SYMBOL = policy["agency"].get("currency_symbol") or policy["policy"].get("currency_symbol") or "$"
+VOLUME_UNIT = policy["agency"].get("volume_unit", "gallons")
+globals()["CURRENCY_SYMBOL"] = CURRENCY_SYMBOL
+globals()["VOLUME_UNIT"] = VOLUME_UNIT
 
 # --- Header ------------------------------------------------------------------------
 st.title("HedgeProof")
@@ -97,10 +104,10 @@ A city bus agency buys diesel every month but fixes its fuel budget before it kn
 service budgets. Diesel futures can steady the budget, but only if the hedge fits the real exposure, survives an honest
 test and stays within the agency's rules.
 
-* **Scenario (FIXTURE):** {policy['agency']['label']}, **{policy['forecast_gallons']:,} gallons per month** (declared input, not agency data).
-* **Policy v1:** NY Harbor ULSD futures (HO, 42,000 gal each); at most **75% of forecast = {policy['n_cap']} contracts**;
-  never net short; one-month holding; cash stress (25% fall) at most **$250,000**; a human approves the exact order.
-* **Data:** EIA Gulf Coast diesel spot (fuel price proxy) and NY Harbor futures. Historical paper replay only; EIA futures end 5 Apr 2024. (Illustrative U.S. public data; fictional agency is styled on an Indian city bus operator. Not a validated Indian deployment.)
+* **Scenario (FIXTURE):** {policy['agency']['label']}, **{policy['forecast_gallons']:,} {VOLUME_UNIT} per month** (declared input, not agency data).
+* **Policy v1:** instrument `{policy['policy']['instrument']}` (contract size {policy['policy'].get('contract_size', policy['policy'].get('contract_size_gal', 'n/a')):,} {VOLUME_UNIT}); at most **75% of forecast = {policy['n_cap']} contracts**;
+  never net short; one-month holding; cash stress (25% fall) at most **{CURRENCY_SYMBOL}{policy['policy'].get('cash_stress_cap_usd', 0):,.0f}**; a human approves the exact order.
+* **Data:** {policy['agency'].get('note', 'Historical market data (see manifest).')}
 """
     )
 

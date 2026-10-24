@@ -1,0 +1,19 @@
+# HedgeProof agency policy for the INDIAN scenario (FROZEN).
+#
+# Instrument: MCX crude-oil futures used as a proxy for diesel (India has no
+# liquid ULSD futures). Contract size is declared in litres.
+
+policy_version = "v1-india"
+agency_label = "Fixture: mid-size Indian city bus agency (illustrative; Indian scenario)"
+
+instrument = "MCX-CRUDE"
+contract_size = 15000
+currency = "INR"
+
+allow_net_short = false
+max_hedge_ratio = 0.75
+holding_months = 1
+cash_stress_shock = 0.25
+cash_stress_cap_usd = 2000000
+stale_max_sessions = 3
+require_human_approval = true

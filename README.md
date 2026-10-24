@@ -95,6 +95,33 @@ uv run hedgeproof run execute --lineage TEST-DEMO --agents scripted --request-co
 
 Other commands: `uv run hedgeproof evals` (16 cases, writes `results/`), `uv run hedgeproof spend` (API ledger), `uv run hedgeproof smoke` (one tiny live call).
 
+### Vercel deployment (agentic AI demo)
+
+Deploy the trusted service + a landing page + an OpenRouter-backed chat to
+Vercel (serverless). See `docs/VERCEL_DEPLOYMENT.md` and `docs/USER_FLOW.md`.
+
+```
+# set OPENROUTER_API_KEY, HEDGEPROOF_SCENARIO, HEDGEPROOF_OPERATOR_CODE in Vercel
+# import repo -> deploy
+```
+
+The landing page is `public/index.html`; the API is `api/index.py`.
+
+### Indian scenario (parallel, clearly labelled)
+
+A second, illustrative scenario for an Indian city bus agency (BMTC-style) using
+MCX crude-oil futures as a proxy for diesel and an Indian retail diesel price as
+the physical price proxy. Runs on the same engine and gate, with its own config
+(`config/india/`) and data folder (`data/india/`):
+
+```
+uv run hedgeproof serve --mode test --scenario india     # SYNTHETIC-INDIA data
+uv run hedgeproof dashboard
+```
+
+See `docs/INDIA_SCENARIO.md`. No real Indian market data is shipped; the
+loaders accept PPAC and MCX files when available. No performance claims are made.
+
 ### Environment variables (no env files in this repository)
 
 | Name | Needed for | Example (dummy) |

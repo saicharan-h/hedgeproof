@@ -11,4 +11,6 @@ label = "Fixture: mid-size Indian city bus agency (illustrative)"
 data_label = "FIXTURE"
 forecast_gallons_per_month = 420000
 currency = "USD"
+currency_symbol = "$"
+volume_unit = "gallons"
 note = "Declared scenario input chosen for the demonstration. Fictional Indian-style agency; underlying market data is U.S. public EIA data used as an illustrative proxy. Not agency data, not a forecast, not Indian market data."

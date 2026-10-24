@@ -137,4 +137,107 @@ class ScriptedClient:
         return ModelResponse(blocks, uses, "", "tool_use" if uses else "end_turn", {}, 0.0, 0.0, "scripted-test-double", "test_double")
 
 
-__all__ = ["BudgetExhausted", "ClaudeClient", "ModelCallError", "ModelResponse", "ScriptedClient", "request_bytes"]
+# --- OpenRouter client (OpenAI-compatible) ---------------------------------------
+
+
+class OpenRouterClient:
+    """Model client backed by OpenRouter (OpenAI-compatible API).
+
+    Drop-in replacement for ClaudeClient for the agent roles: same ``create``
+    signature and ModelResponse output. Model ids are OpenRouter ids such as
+    ``anthropic/claude-sonnet-4`` or ``openai/gpt-4o``. The API key is read
+    from ``OPENROUTER_API_KEY`` (never logged). Spend control is reused.
+    """
+
+    mode = "live"
+
+    def __init__(self, spend: SpendController, phase: str, effort: str = "medium",
+                 timeout_s: float = 120.0, max_attempts: int = 2, base_url: str = "https://openrouter.ai/api/v1"):
+        import os
+
+        import openai
+
+        self.openai = openai
+        api_key = os.environ.get("OPENROUTER_API_KEY")
+        self.sdk = openai.OpenAI(api_key=api_key, base_url=base_url, max_retries=0, timeout=timeout_s)
+        self.spend, self.phase, self.effort, self.max_attempts = spend, phase, effort, max_attempts
+
+    def create(self, *, model: str, system: list[dict[str, Any]], messages: list[Any], tools: list[dict[str, Any]],
+               max_tokens: int, run_id: str) -> ModelResponse:
+        import json
+        import time
+
+        # Convert Anthropic-style messages/tools to OpenAI chat format.
+        oai_messages: list[dict[str, Any]] = []
+        sys_text = "\n".join(b.get("text", "") for b in (system or []) if isinstance(b, dict))
+        if sys_text:
+            oai_messages.append({"role": "system", "content": sys_text})
+        for m in messages or []:
+            role = m.get("role", "user")
+            content = m.get("content", "")
+            if isinstance(content, list):
+                # flatten text blocks; tool_use/tool_result handled minimally
+                txt = "".join(b.get("text", "") for b in content if isinstance(b, dict) and b.get("type") == "text")
+                content = txt if txt else json.dumps(content, default=_jsonable)
+            oai_messages.append({"role": role, "content": content})
+
+        oai_tools = None
+        if tools:
+            oai_tools = []
+            for t in tools:
+                oai_tools.append({
+                    "type": "function",
+                    "function": {
+                        "name": t["name"],
+                        "description": t.get("description", ""),
+                        "parameters": t.get("input_schema", {"type": "object", "properties": {}}),
+                    },
+                })
+
+        rb = request_bytes(system, messages, tools)
+        last_err: ModelCallError | None = None
+        for attempt in range(self.max_attempts):
+            res: Reservation = self.spend.reserve(run_id, self.phase, model, rb, max_tokens)
+            t0 = time.monotonic()
+            try:
+                resp = self.sdk.chat.completions.create(
+                    model=model, messages=oai_messages, tools=oai_tools, max_tokens=max_tokens,
+                )
+            except Exception as e:  # noqa: BLE001
+                kind = "timeout" if "timeout" in type(e).__name__.lower() else "connection"
+                self.spend.mark_uncertain(res, type(e).__name__)
+                last_err = ModelCallError(kind, f"{type(e).__name__}: {e}", uncertain=True)
+                continue
+            choice = resp.choices[0]
+            msg = choice.message
+            text = msg.content or ""
+            tool_uses = []
+            blocks: list[Any] = []
+            if text:
+                blocks.append({"type": "text", "text": text})
+            for tc in (msg.tool_calls or []):
+                import json as _j
+                try:
+                    inp = _j.loads(tc.function.arguments or "{}")
+                except Exception:  # noqa: BLE001
+                    inp = {}
+                uid = tc.id
+                blocks.append({"type": "tool_use", "id": uid, "name": tc.function.name, "input": inp})
+                tool_uses.append({"id": uid, "name": tc.function.name, "input": inp})
+            usage = {}
+            if resp.usage:
+                usage = {
+                    "input_tokens": resp.usage.prompt_tokens or 0,
+                    "output_tokens": resp.usage.completion_tokens or 0,
+                    "cache_read_input_tokens": 0,
+                    "cache_creation_input_tokens": 0,
+                }
+            cost = self.spend.settle(res, usage)
+            stop_reason = "tool_use" if tool_uses else (choice.finish_reason or "end_turn")
+            return ModelResponse(blocks, tool_uses, text, stop_reason, usage, cost,
+                                round(time.monotonic() - t0, 2), getattr(resp, "model", model) or model, "live")
+        raise last_err or ModelCallError("unknown", "model call failed")
+
+
+__all__ = ["BudgetExhausted", "ClaudeClient", "ModelCallError", "ModelResponse", "OpenRouterClient",
+           "ScriptedClient", "request_bytes"]

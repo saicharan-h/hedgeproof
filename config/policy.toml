@@ -8,6 +8,8 @@
 # Runtime agents cannot read or write this file through any tool.
 
 policy_version = "v1"
+currency = "USD"
+currency_symbol = "$"
 agency_label = "Fixture: mid-size city bus agency (fictional; declared scenario inputs)"
 
 # G05: the only approved instrument. NY Harbor ULSD futures, CME code HO.

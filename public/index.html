@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>HedgeProof — Verifiable AI hedge research</title>
+<style>
+  :root { --bg:#0b1020; --card:#141a33; --fg:#e6e9f2; --muted:#9aa3bf; --accent:#6ea8fe; }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--fg)}
+  header{padding:24px 32px;border-bottom:1px solid #2a3150}
+  h1{margin:0;font-size:22px}
+  .sub{color:var(--muted);font-size:13px;margin-top:4px}
+  main{max-width:960px;margin:0 auto;padding:24px 32px;display:grid;gap:16px}
+  .card{background:var(--card);border:1px solid #2a3150;border-radius:12px;padding:16px}
+  .row{display:flex;gap:12px;flex-wrap:wrap}
+  .metric{flex:1;min-width:140px;background:#0f1530;border-radius:8px;padding:10px}
+  .metric .k{font-size:11px;color:var(--muted);text-transform:uppercase}
+  .metric .v{font-size:18px;font-weight:600;margin-top:2px}
+  #chat{display:flex;flex-direction:column;height:360px}
+  #msgs{flex:1;overflow:auto;padding:8px;display:flex;flex-direction:column;gap:8px}
+  .msg{padding:8px 12px;border-radius:8px;max-width:85%;white-space:pre-wrap;font-size:14px}
+  .msg.user{align-self:flex-end;background:#2a3a6b}
+  .msg.bot{align-self:flex-start;background:#1f2747}
+  .inputbar{display:flex;gap:8px;margin-top:8px}
+  input,button{padding:10px 12px;border-radius:8px;border:1px solid #2a3150;background:#0f1530;color:var(--fg);font-size:14px}
+  button{background:var(--accent);color:#0b1020;border:none;cursor:pointer;font-weight:600}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  .muted{color:var(--muted);font-size:12px}
+</style>
+</head>
+<body>
+<header>
+  <h1>HedgeProof</h1>
+  <div class="sub">Verifiable AI hedge research for city bus fuel budgets · ChronoForge 2026 · Agentic AI track</div>
+</header>
+<main>
+  <div class="card">
+    <div class="row" id="metrics"></div>
+    <div class="muted" id="status" style="margin-top:8px">loading…</div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin:0 0 8px">Ask the research assistant (OpenRouter)</h3>
+    <div id="chat">
+      <div id="msgs"></div>
+      <div class="inputbar">
+        <input id="q" placeholder="Ask about fuel hedging, the evidence gate, Indian scenario…" style="flex:1" />
+        <button id="send">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin:0 0 8px">About</h3>
+    <p class="muted">AI investigates a fuel hedge; independent code checks the calculations and agency rules; a human approves the exact proposal before a simulated paper order can proceed. Core mechanism: the Mandate-Bound Evidence Gate (G01–G12). This deployment runs on SYNTHETIC data on Vercel (serverless, ephemeral state).</p>
+  </div>
+</main>
+<script>
+const $ = (s)=>document.querySelector(s);
+async function loadHealth(){
+  try {
+    const h = await fetch('/api/health').then(r=>r.json());
+    const p = await fetch('/api/policy').then(r=>r.json());
+    const metrics = [
+      {k:'Mode', v:h.mode},
+      {k:'Data', v:h.data_loaded?'loaded':'missing'},
+      {k:'Policy', v:h.policy_version},
+      {k:'Holdout', v:h.holdout_state},
+      {k:'Forecast', v:(p.forecast_gallons||0).toLocaleString()+' '+ (p.agency?.volume_unit||'units')},
+      {k:'Contracts cap', v:p.n_cap},
+    ];
+    $('#metrics').innerHTML = metrics.map(m=>`<div class="metric"><div class="k">${m.k}</div><div class="v">${m.v}</div></div>`).join('');
+    $('#status').textContent = `service ok · policy ${h.policy_sha256.slice(0,12)} · replay ${h.replay_date}`;
+  } catch(e){ $('#status').textContent = 'service unreachable: '+e.message; }
+}
+function addMsg(text, who){ const d=document.createElement('div'); d.className='msg '+who; d.textContent=text; $('#msgs').appendChild(d); $('#msgs').scrollTop=1e9; }
+async function send(){
+  const q=$('#q').value.trim(); if(!q) return;
+  $('#q').value=''; addMsg(q,'user');
+  const btn=$('#send'); btn.disabled=true; btn.textContent='…';
+  try {
+    const r = await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:q})});
+    const j = await r.json();
+    addMsg(j.reply || j.error || 'no response','bot');
+  } catch(e){ addMsg('error: '+e.message,'bot'); }
+  btn.disabled=false; btn.textContent='Send';
+}
+$('#send').addEventListener('click',send);
+$('#q').addEventListener('keydown',e=>{if(e.key==='Enter')send();});
+loadHealth();
+</script>
+</body>
+</html>

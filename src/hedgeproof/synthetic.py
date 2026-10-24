@@ -10,6 +10,7 @@ meaningful.
 from __future__ import annotations
 
 from datetime import date, timedelta
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -36,10 +37,11 @@ def synthetic_market(
     spread_per_month: float = 0.01,
     level: float = 2.5,
     drop_spot: tuple[str, ...] = (),
+    holidays: Any = None,
 ) -> MarketData:
     rng = np.random.default_rng(seed)
     s0, e0 = date.fromisoformat(start), date.fromisoformat(end)
-    hol = _holidays(s0, e0)
+    hol = (holidays(s0, e0) if callable(holidays) else _holidays(s0, e0)) if holidays is not None else _holidays(s0, e0)
     days = []
     d = s0
     while d <= e0:

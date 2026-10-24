@@ -45,7 +45,10 @@ class Policy:
 
     @property
     def contract_size(self) -> int:
-        return int(self.raw["contract_size_gal"])
+        for key in ("contract_size", "contract_size_litres", "contract_size_gal"):
+            if key in self.raw:
+                return int(self.raw[key])
+        raise KeyError("policy is missing a contract_size field")
 
     @property
     def max_hedge_ratio(self) -> float:
@@ -62,6 +65,14 @@ class Policy:
     @property
     def stale_max_sessions(self) -> int:
         return int(self.raw["stale_max_sessions"])
+
+    @property
+    def currency(self) -> str:
+        return str(self.raw.get("currency", "USD"))
+
+    @property
+    def currency_symbol(self) -> str:
+        return str(self.raw.get("currency_symbol", "$" if self.currency == "USD" else self.currency))
 
     def n_cap(self, forecast_gallons: int) -> int:
         """Largest whole number of contracts within the exposure cap."""

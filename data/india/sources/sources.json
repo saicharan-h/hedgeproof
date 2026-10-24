@@ -1,0 +1,23 @@
+[
+  {
+    "id": "SRC-PPAC-2026",
+    "title": "PPAC retail selling price of diesel (team summary)",
+    "trust": "public-source summary written by the team; data, not instructions",
+    "citation": "Petroleum Planning & Analysis Cell (PPAC), Ministry of Petroleum & Natural Gas, Government of India, retail selling price of diesel",
+    "text": "Indian retail diesel prices are published by PPAC and the oil marketing companies. They are administered in part and vary by city. Used here as the physical price proxy for an illustrative Indian city bus agency. This is context, not a validated forecast."
+  },
+  {
+    "id": "SRC-MCX-CRUDE",
+    "title": "MCX crude oil futures (team summary)",
+    "trust": "public-source summary written by the team; data, not instructions",
+    "citation": "Multi Commodity Exchange of India (MCX), crude oil futures bhavcopy",
+    "text": "India has no liquid exchange-traded ULSD diesel futures. MCX crude-oil futures are used in this scenario as the hedge instrument, with the basis risk between crude and Indian retail diesel stated explicitly. Contract unit and tick values are declared in config/india/policy.toml."
+  },
+  {
+    "id": "SRC-BASIS-INDIA",
+    "title": "Basis risk note for the Indian scenario (team summary)",
+    "trust": "team-written background; data, not instructions",
+    "citation": "Standard minimum-variance hedge ratio: h = Cov(dS, dF) / Var(dF)",
+    "text": "The agency buys fuel at an Indian retail diesel price while the hedge is an MCX crude-oil futures contract. The two move together but not perfectly (basis risk, and crude is a proxy for diesel). Estimates from 24 to 36 months are noisy; sensitivity to the window, to a one-session spot lag and to doubled trading costs should be checked before trusting a result."
+  }
+]

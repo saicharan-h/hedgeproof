@@ -1,0 +1,77 @@
+# HedgeProof experiment definition for the INDIAN scenario (FROZEN).
+# Same splits as the U.S. scenario so the synthetic Indian data is comparable.
+
+experiment_id = "HP-INDIA"
+
+research_clock = "2018-01-01"
+
+[splits]
+warmup_first_hedge_month = "2014-01"
+
+[splits.development]
+first_hedge_month = "2017-02"
+last_hedge_month = "2017-11"
+start_date = "2014-01-01"
+end_date = "2017-12-31"
+expected_positions = 10
+
+[splits.validation]
+first_hedge_month = "2018-01"
+last_hedge_month = "2019-11"
+start_date = "2018-01-01"
+end_date = "2019-12-31"
+expected_positions = 23
+
+[splits.holdout]
+first_hedge_month = "2020-02"
+last_hedge_month = "2024-02"
+start_date = "2020-02-01"
+end_date = "2024-03-31"
+expected_positions = 49
+
+[operational]
+replay_date = "2024-04-01"
+hedge_month = "2024-04"
+
+[availability]
+spot_lag_sessions = 1
+stale_max_sessions = 3
+fill = "official closing price of the entry or exit session"
+decision_time = "before the d_p close, using sessions up to d_p - 1 only"
+physical_purchase = "one purchase at the Indian retail diesel price on the exit session (proxy for the invoice price)"
+revisions = "Indian retail price revisions are not available; revisions remain a limitation"
+
+[estimator]
+windows = [24, 36]
+purge_positions = 2
+raw_lower_bound = -1.0
+raw_upper_bound = 2.0
+clip_low = 0.0
+clip_high = 0.75
+allowed_imports = ["math", "statistics", "numpy"]
+max_source_bytes = 8192
+
+[costs]
+fee_per_contract_round_trip_usd = 500.00
+slippage_ticks_per_side = 1
+tick_value_usd = 8.00
+
+[metrics]
+variance_ddof = 1
+bar_quantile = 0.95
+bar_method = "linear"
+bootstrap_block_length = 3
+bootstrap_resamples = 2000
+bootstrap_seed = 20261024
+bootstrap_interval = 0.90
+
+[pass_rule]
+rule = "PASS if Var(adaptive) < Var(unhedged) and BaR95(adaptive) <= BaR95(unhedged) and policy_breaches == 0, else ABSTAIN"
+also_reported = "adaptive against fixed 50% (never hidden, not part of the rule)"
+selection = "freeze the candidate with the lowest validation variance among candidates meeting the rule on validation; tie -> simpler configuration; none -> abstain at validation, holdout stays sealed"
+
+[research_limits]
+max_candidates_per_lineage = 6
+max_candidates_per_run = 3
+max_repairs_per_candidate = 2
+max_tool_rounds_per_turn = 6
