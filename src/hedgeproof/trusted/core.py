@@ -141,6 +141,12 @@ class TrustedCore:
     def __exit__(self, *exc: object) -> None:
         self.close()
 
+    def __del__(self) -> None:
+        try:
+            self.close()
+        except Exception:  # noqa: BLE001
+            pass
+
     # --- helpers --------------------------------------------------------------------
 
     @property
