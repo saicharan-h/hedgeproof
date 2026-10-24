@@ -1,6 +1,6 @@
 # HedgeProof build state
 
-Updated: Sat 24 Oct 2026, 11:50 AM IST. Labels: PLANNED, IMPLEMENTED, VERIFIED (command output or inspected file), BLOCKED, DEFERRED.
+Updated: Sat 24 Oct 2026, 11:40 AM IST. Labels: PLANNED, IMPLEMENTED, VERIFIED (command output or inspected file), BLOCKED, DEFERRED.
 
 ## Event facts
 
@@ -30,15 +30,15 @@ Updated: Sat 24 Oct 2026, 11:50 AM IST. Labels: PLANNED, IMPLEMENTED, VERIFIED (
 | Frozen configs and hashes (`config/`) | IMPLEMENTED | hashes below |
 | EIA loader and period table (`data.py`) | IMPLEMENTED, tested on SYNTHETIC data only | `tests/test_invariants.py`; real files BLOCKED (see blockers) |
 | Quant engine and baselines (`engine.py`) | IMPLEMENTED | invariants 1, 3, 4, 5, 7, 8 pass on SYNTHETIC data |
-| Trusted service, gate, approvals, simulator | PLANNED (next) | |
-| Sandbox runner | PLANNED | |
-| Agents and spend controller | PLANNED | |
-| Dashboard | PLANNED | |
-| 16-case evaluation | PLANNED | |
+| Trusted service: SQLite store, gate G01-G12, operator-coded approvals, paper simulator, ack-timeout reconciliation, holdout lock, evidence packets, FastAPI | IMPLEMENTED, VERIFIED on SYNTHETIC data | `tests/test_cases.py`, `tests/test_service_http.py` |
+| Sandbox runner (Docker image `hedgeproof-sandbox:1`, harness, static checks, verification tests) | IMPLEMENTED, VERIFIED in the cloud container | `uv run hedgeproof sandbox-check`: uid 65534, network blocked, read-only root, CapEff 0, infinite loop killed at ~5 s |
+| Agents and spend controller | PLANNED (next after dashboard) | |
+| Dashboard | PLANNED (next) | |
+| 16-case evaluation | IMPLEMENTED: 16/16 pass on SYNTHETIC data; gate ablation 5 violating orders with gate off vs 0 with gate on | `uv run pytest -q` |
 
 ## Tests
 
-- `uv run pytest -q`: 17 passed (24 Oct, ~11:45 AM IST), deterministic, no API calls.
+- `uv run pytest -q`: 44 passed (24 Oct, 11:38 AM IST), deterministic, no API calls (Docker sandbox used by F2, V6 and sandbox tests).
 
 ## Config hashes (SHA-256 of canonical JSON of parsed TOML)
 

@@ -219,7 +219,8 @@ class EvidencePacket(Record):
     strategy: str
     candidate_id: str | None
     source_sha256: str | None
-    artifacts: dict[str, str]
+    # name -> {"id": artifact id, "sha256": its hash when the packet was built}
+    artifacts: dict[str, dict[str, str]]
     recommendation: dict[str, Any]
     assumptions: dict[str, str]
     label: str

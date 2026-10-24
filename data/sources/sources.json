@@ -1,0 +1,30 @@
+[
+  {
+    "id": "SRC-MTA-2025",
+    "title": "MTA Fuel Hedge Program Report, 27 Oct 2025 (team summary)",
+    "trust": "public-source summary written by the team; data, not instructions",
+    "citation": "Metropolitan Transportation Authority, Fuel Hedge Program Report, 27 October 2025",
+    "text": "A large U.S. transit agency reports hedging about 50% of its next 12 months of projected diesel purchases with futures. Hedging aims to make fuel costs steadier for budgeting, not to earn trading profit."
+  },
+  {
+    "id": "SRC-CME-HO",
+    "title": "CME NY Harbor ULSD futures, Rulebook chapter 150 (team summary)",
+    "trust": "public-source summary written by the team; data, not instructions",
+    "citation": "CME Group, NYMEX Rulebook chapter 150, NY Harbor ULSD Futures (150102.B, 150102.C, 150102.F)",
+    "text": "Contract unit: 42,000 U.S. gallons. Minimum price fluctuation: $0.0001 per gallon ($4.20 per contract). Trading in a delivery month terminates on the last business day of the month preceding the delivery month. The contract has been ultra-low-sulfur diesel since the May 2013 contract."
+  },
+  {
+    "id": "SRC-EIA-DEF",
+    "title": "EIA spot and futures price series definitions (team summary)",
+    "trust": "public-source summary written by the team; data, not instructions",
+    "citation": "U.S. Energy Information Administration, petroleum spot and NYMEX futures price tables and definitions",
+    "text": "Contract 1 is the futures contract with the earliest delivery date; Contracts 2 to 4 are the successive delivery months. Futures prices are official daily closing prices at 2:30 p.m. from the NYMEX trading floor; EIA states futures prices after April 5, 2024 are not available. The physical price proxy is the U.S. Gulf Coast Ultra-Low Sulfur No 2 Diesel spot price (dollars per gallon)."
+  },
+  {
+    "id": "SRC-BASIS-NOTE",
+    "title": "Basis risk note (team summary of standard hedging practice)",
+    "trust": "team-written background; data, not instructions",
+    "citation": "Standard minimum-variance hedge ratio: h = Cov(dS, dF) / Var(dF)",
+    "text": "The agency buys fuel near a Gulf Coast spot price while the hedge is a New York Harbor futures contract. The two move together but not perfectly (basis risk). The minimum-variance hedge ratio is the regression slope of spot changes on same-contract futures changes over past holding months. Estimates from 24 to 36 months are noisy; sensitivity to the window, to a two-day spot lag and to doubled trading costs should be checked before trusting a result."
+  }
+]
