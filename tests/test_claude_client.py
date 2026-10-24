@@ -130,8 +130,8 @@ def test_missing_provider_key_sends_nothing(tmp_path, monkeypatch):
 def test_price_check_flags_provider_prices_above_configured():
     from hedgeproof.agents.cli import check_prices
 
-    rt = load_settings().runtime
-    research, practice = rt["models"]["research"], rt["models"]["practice"]
+    research, practice = "anthropic/claude-sonnet-5.5", "anthropic/claude-haiku-5.5"
+    rt = {"models": {"research": research, "practice": practice}, "prices": load_settings().runtime["prices"]}
     fine = [{"id": research, "pricing": {"prompt": "0.000002", "completion": "0.00001", "input_cache_read": "0.0000001"}},
             {"id": practice, "pricing": {"prompt": "0.0000001", "completion": "0.0000005"}}]
     assert check_prices(rt, fine) == []

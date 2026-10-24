@@ -126,6 +126,18 @@ def cmd_smoke(args: argparse.Namespace) -> None:
     print(f"provider {prov['name']} · base URL {prov.get('base_url') or 'api.anthropic.com'} · key variable {prov['key_env']} · model {model_id}")
     if not os.environ.get(prov["key_env"]):
         sys.exit(f"{prov['key_env']} is not set in this terminal. Nothing was sent.")
+    if prov.get("key_info_url"):  # the provider refuses a request whose maximum cost exceeds what the key has left
+        try:
+            r = httpx.get(prov["key_info_url"], headers={"Authorization": f"Bearer {os.environ[prov['key_env']]}"}, timeout=30)
+            d = (r.json().get("data") or {}) if r.status_code == 200 else {}
+            if d:
+                lim, left = d.get("limit"), d.get("limit_remaining")
+                print(f"  key allowance: limit {'none' if lim is None else f'${float(lim):.4f}'} · used ${float(d.get('usage') or 0):.4f}"
+                      + ("" if left is None else f" · remaining ${float(left):.4f}"))
+            else:
+                print(f"  key allowance: not available (HTTP {r.status_code})")
+        except (httpx.HTTPError, ValueError) as e:
+            print(f"  key allowance: not available ({type(e).__name__})")
     if prov.get("models_url"):
         try:
             listing = httpx.get(prov["models_url"], timeout=30).json().get("data", [])
