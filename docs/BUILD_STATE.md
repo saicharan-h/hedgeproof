@@ -1,6 +1,6 @@
 # HedgeProof build state
 
-Updated: Sat 24 Oct 2026, 11:58 AM IST. Labels: PLANNED, IMPLEMENTED, VERIFIED (command output or inspected file), BLOCKED, DEFERRED.
+Updated: Sat 24 Oct 2026, 12:53 PM IST. Labels: PLANNED, IMPLEMENTED, VERIFIED (command output or inspected file), BLOCKED, DEFERRED.
 
 ## Event facts
 
@@ -10,8 +10,10 @@ Updated: Sat 24 Oct 2026, 11:58 AM IST. Labels: PLANNED, IMPLEMENTED, VERIFIED (
 
 ## Branch and commits
 
-- Working branch: `claude/wonderful-keller-enn1fn`; integrates into `main` by pull request (D-019). `main` still holds only the planning upload until the PR is merged.
-- Pushed commits on the branch: `2ced2ff` (bootstrap, data, engine), `4030fa9` (trusted service, gate, sandbox, 16 cases), `efd4213` (agents, spend controller, dashboard, eval results), plus the README/state commit that contains this file.
+- Working branch: `claude/wonderful-keller-enn1fn`; integrates into `main` by pull request (D-019).
+- PR #1 (prototype) was merged into `main` at 12:06 IST (merge commit `0b6025c`).
+- Nikshep pushed `ce4af55` directly to `main` at 12:40 IST: Indian-context framing (illustrative; U.S. EIA data retained, no Indian data claimed) plus a Windows test workaround (`ignore_cleanup_errors`, `Store.__del__`). The framing is kept; the workaround is replaced by explicit connection closing (D-030).
+- The Windows connection-lifecycle fix is on the branch for PR #2.
 
 ## Environment facts
 
@@ -19,7 +21,9 @@ Updated: Sat 24 Oct 2026, 11:58 AM IST. Labels: PLANNED, IMPLEMENTED, VERIFIED (
 |---|---|
 | Cloud session: Python 3.12.3, uv 0.11.32, Docker 29.9.2 daemon, image `hedgeproof-sandbox:1` built | VERIFIED (cloud container) |
 | Cloud network: PyPI and Docker Hub reachable; `www.eia.gov` blocked (proxy 403); sandbox build needs the proxy CA as a BuildKit secret here (`HEDGEPROOF_EXTRA_CA`), not on the laptop | VERIFIED |
-| Demo laptop (Windows 11): WSL, Docker Desktop 29.9.2, checks A/B/C, Git, uv, Python 3.12.15 | Reported PASSED by Saicharan; HedgeProof itself not yet run there |
+| Demo laptop (Windows 11): WSL, Docker Desktop 29.9.2, checks A/B/C, Git, uv, Python 3.12.15 | Reported PASSED by Saicharan |
+| Demo laptop: `uv sync` and `uv run hedgeproof sandbox-build` | Reported PASSED by Saicharan (12:45 IST) |
+| Demo laptop: `uv run pytest -q` on PR #1 code | Reported **24 failed, 32 passed**: `PermissionError [WinError 32] case.db` at temporary-directory cleanup (SQLite connections never closed). Fix on the branch; **Windows re-run still needed** |
 | Dependencies resolve and lock (77 packages, `uv.lock`) | VERIFIED |
 
 ## Components
@@ -42,7 +46,7 @@ Updated: Sat 24 Oct 2026, 11:58 AM IST. Labels: PLANNED, IMPLEMENTED, VERIFIED (
 
 ## Tests
 
-- `uv run pytest -q`: **56 passed** (24 Oct, 11:56 AM IST; includes 3 mock-transport tests of the live Claude client: request shape, settlement, 429 release, timeout kept as uncertain), deterministic, no API calls; Docker sandbox used by F2, V6, sandbox and workflow tests.
+- `uv run pytest -q`: **64 passed** in the cloud container (24 Oct, 12:50 IST) with a Windows-like guard active: on Linux, `tests/conftest.py` refuses to delete a folder while this process holds a file in it (the WinError 32 rule) and fails any test that leaves a database open. Before the fix the same guard reproduced the laptop result exactly (24 failed, 32 passed). Not yet re-run on Windows.
 
 ## Config hashes (SHA-256 of canonical JSON of parsed TOML)
 
@@ -50,7 +54,7 @@ Updated: Sat 24 Oct 2026, 11:58 AM IST. Labels: PLANNED, IMPLEMENTED, VERIFIED (
 |---|---|
 | `config/policy.toml` (policy v1) | `cacdd77a59a317508209ac6d079805b62d422bcc13e299b4855a0c89103febc5` |
 | `config/experiment.toml` | `3262a1d6681c5885303d803044691de350355938fc7751562613aac044a7ccde` |
-| `config/agency_fixture.toml` | `733bd4b009cbd95dfbf03a7f3dca5f123215af4cf0f41e7dfebaa113e227c181` |
+| `config/agency_fixture.toml` | `a0cdfdf66b8d2c7691757899f280159d2a093d07ff0b9353d82a6cc6b342be78` (changed by `ce4af55` label/note edits; was `733bd4b0…`; no evidence existed yet) |
 
 ## API funding and spend
 

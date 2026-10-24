@@ -7,7 +7,8 @@ operator code in the ``X-Operator-Code`` header. The agent process never has it.
 
 from __future__ import annotations
 
-from typing import Any
+from contextlib import asynccontextmanager
+from typing import Any, AsyncIterator
 
 from fastapi import FastAPI, Header, Request
 from fastapi.responses import JSONResponse
@@ -89,8 +90,14 @@ class OrderIn(Strict):
     idempotency_key: str = Field(min_length=8, max_length=80)
 
 
-def create_app(core: TrustedCore) -> FastAPI:
-    app = FastAPI(title="HedgeProof trusted service", version="0.1.0")
+def create_app(core: TrustedCore, close_core_on_shutdown: bool = True) -> FastAPI:
+    @asynccontextmanager
+    async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+        yield
+        if close_core_on_shutdown:  # release the SQLite connection when the server stops
+            core.close()
+
+    app = FastAPI(title="HedgeProof trusted service", version="0.1.0", lifespan=lifespan)
     app.state.core = core
     app.state.arm_ack_timeout = False
 

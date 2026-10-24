@@ -10,7 +10,8 @@ from hedgeproof.config import load_settings
 
 @pytest.fixture()
 def sc(tmp_path):
-    return SpendController(tmp_path / "spend.db", load_settings().runtime)
+    with SpendController(tmp_path / "spend.db", load_settings().runtime) as controller:
+        yield controller
 
 
 def test_worst_case_is_conservative_and_settle_uses_real_usage(sc):
@@ -59,19 +60,19 @@ def test_run_cap_phase_and_global_limits(sc):
 
 def test_phase_allowance_exhaustion_survives_restart(tmp_path):
     rt = load_settings().runtime
-    a = SpendController(tmp_path / "s.db", rt)
-    for i in range(30):
-        try:
-            r = a.reserve(f"RUN-{i}", "final", "claude-sonnet-5-5", 100_000, 8_000)
-        except BudgetExhausted as e:
-            assert e.reason == "PHASE_BUDGET_EXHAUSTED"
-            break
-        a.settle(r, {"input_tokens": 100_000, "output_tokens": 8_000})
-    else:
-        pytest.fail("phase allowance never bound")
-    b = SpendController(tmp_path / "s.db", rt)  # new process, same durable ledger
-    with pytest.raises(BudgetExhausted):
-        b.reserve("RUN-NEW-NAME", "final", "claude-sonnet-5-5", 100_000, 8_000)
+    with SpendController(tmp_path / "s.db", rt) as a:
+        for i in range(30):
+            try:
+                r = a.reserve(f"RUN-{i}", "final", "claude-sonnet-5-5", 100_000, 8_000)
+            except BudgetExhausted as e:
+                assert e.reason == "PHASE_BUDGET_EXHAUSTED"
+                break
+            a.settle(r, {"input_tokens": 100_000, "output_tokens": 8_000})
+        else:
+            pytest.fail("phase allowance never bound")
+    with SpendController(tmp_path / "s.db", rt) as b:  # new process, same durable ledger
+        with pytest.raises(BudgetExhausted):
+            b.reserve("RUN-NEW-NAME", "final", "claude-sonnet-5-5", 100_000, 8_000)
 
 
 def test_unknown_model_is_refused_not_guessed(sc):
