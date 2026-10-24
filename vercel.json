@@ -2,10 +2,5 @@
   "version": 2,
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/$1" }
-  ],
-  "env": {
-    "OPENROUTER_API_KEY": "@openrouter_api_key",
-    "HEDGEPROOF_SCENARIO": "us",
-    "HEDGEPROOF_OPERATOR_CODE": "DEMO01"
-  }
+  ]
 }

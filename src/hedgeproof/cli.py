@@ -95,8 +95,14 @@ def build_core(mode: str, synthetic: bool = False, db: str | None = None, inject
                        data_label=label, sources=sources)
 
 
+SECRET_ENV = ("ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN", "OPENROUTER_API_KEY")
+
+
 def cmd_serve(args: argparse.Namespace) -> None:
     import uvicorn
+
+    for name in SECRET_ENV:  # the trusted service never calls a model; keep keys out of its process
+        os.environ.pop(name, None)
 
     from hedgeproof.trusted.core import new_operator_code
     from hedgeproof.trusted.service import create_app
@@ -121,7 +127,7 @@ def cmd_serve(args: argparse.Namespace) -> None:
 
 
 def cmd_dashboard(args: argparse.Namespace) -> None:
-    env = {k: v for k, v in os.environ.items() if k != "ANTHROPIC_API_KEY"}
+    env = {k: v for k, v in os.environ.items() if k not in SECRET_ENV}
     env["HEDGEPROOF_SERVICE_URL"] = args.service
     app = Path(__file__).with_name("dashboard.py")
     sys.exit(subprocess.call([sys.executable, "-m", "streamlit", "run", str(app), "--server.address", "127.0.0.1",

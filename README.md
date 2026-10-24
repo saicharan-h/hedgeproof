@@ -138,15 +138,16 @@ loaders accept PPAC and MCX files when available. No performance claims are made
 
 | Name | Needed for | Example (dummy) |
 |---|---|---|
-| `ANTHROPIC_API_KEY` | live agent runs only, on the demo laptop | `sk-ant-…` (never commit, print or paste it) |
+| `OPENROUTER_API_KEY` | live agent runs only, on the demo laptop (provider: OpenRouter, see `config/runtime.toml`) | `sk-or-…` (never commit, print or paste it) |
+| `ANTHROPIC_API_KEY` | only if `config/runtime.toml` is switched to the Anthropic provider | `sk-ant-…` |
 | `HEDGEPROOF_EXTRA_CA` | only when building the sandbox behind a TLS-inspecting proxy | `/path/to/ca-bundle.crt` |
 | `HEDGEPROOF_CONFIG_DIR` | optional alternative config folder | `config` |
 
-On Windows set the key through *Start → Edit environment variables for your account*, then open a new terminal. Do not use `setx` with the key in the command (PowerShell saves history).
+On Windows set the key through *Start → Edit environment variables for your account* (name `OPENROUTER_API_KEY`), then open a new terminal. Do not use `setx` with the key in the command (PowerShell saves history).
 
 ## API budget behaviour
 
-The team's application API budget is **$10 total**: $7 for development, rehearsals and checkpoints, $3 reserved for the final demo and judging, and a provisional **$1 per research run**. One durable SQLite ledger (`var/spend.db`) serializes paid calls and **reserves the worst-case cost before each call** (input upper bound from request size at the highest input or cache-write rate, plus `max_tokens` at the output rate, which includes thinking). After the call it settles with the real token usage; a timeout keeps the full reservation as uncertain. Work that would exceed the run, phase or total allowance is refused before dispatch with a clear `BUDGET_EXHAUSTED` state. This is a guard, not a guaranteed cap; the hard cap is the prepaid Console balance with auto-reload off. Deterministic tests, backtests and the 16 cases make no paid calls. Default models: `claude-sonnet-5-5` for research decisions, `claude-haiku-5-5` for wiring tests (configurable in `config/runtime.toml`).
+The team's application API budget is **$10 total**: $7 for development, rehearsals and checkpoints, $3 reserved for the final demo and judging, and a provisional **$1 per research run**. One durable SQLite ledger (`var/spend.db`) serializes paid calls and **reserves the worst-case cost before each call** (input upper bound from request size at the highest input or cache-write rate, plus `max_tokens` at the output rate, which includes thinking). After the call it settles with the real token usage; a timeout keeps the full reservation as uncertain. Work that would exceed the run, phase or total allowance is refused before dispatch with a clear `BUDGET_EXHAUSTED` state. This is a guard, not a guaranteed cap; the hard cap is the prepaid Console balance with auto-reload off. Deterministic tests, backtests and the 16 cases make no paid calls. Provider: the team's $10 is OpenRouter credit, so the official Anthropic SDK calls OpenRouter's Anthropic-compatible endpoint (`https://openrouter.ai/api`, key sent as a Bearer token). Default models: `anthropic/claude-sonnet-5.5` for research decisions, `anthropic/claude-haiku-5.5` for wiring tests (configurable in `config/runtime.toml`). `uv run hedgeproof smoke` compares the configured prices with OpenRouter's live price list before any run; recorded costs are estimates from token usage at those (conservative) prices, and OpenRouter's activity page is the authoritative bill.
 
 ## Security and privacy controls
 
@@ -156,7 +157,7 @@ The team's application API budget is **$10 total**: $7 for development, rehearsa
 - **Fail closed:** missing evidence, changed hashes, stale data, unknown order state and unreachable checks all block. Changed evidence or order terms produce a new intent hash, so old approvals cannot be reused.
 - **Prompt injection:** retrieved text is labelled data; policy and approvals are enforced independently of what any model says (case F8).
 - **Local only:** the service and dashboard bind to 127.0.0.1. Append-only events and evidence records (database triggers). Hashes detect changes; a local SQLite file is not tamper-proof.
-- **Secrets:** no env files are tracked (`tests/test_hygiene.py`); the dashboard process is started without `ANTHROPIC_API_KEY`.
+- **Secrets:** no env files are tracked (`tests/test_hygiene.py` also scans for Anthropic and OpenRouter keys); the trusted service and the dashboard drop API keys from their own process environment at start; the public Vercel showcase publishes no operator code and keeps chat off by default (`docs/VERCEL_DEPLOYMENT.md`).
 
 ## Tests and results
 

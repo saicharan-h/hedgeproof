@@ -90,3 +90,52 @@ def test_timeout_keeps_reservation_as_uncertain(tmp_path):
         s = spend.summary()
     assert e.value.uncertain is True
     assert s["uncertain_calls"] == 1 and s["uncertain_reserved_usd"] > 0
+
+
+def test_openrouter_mode_sends_only_the_provider_key_to_its_base_url(tmp_path, monkeypatch):
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-openrouter-key-not-real")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-should-never-be-sent")
+    seen: list[httpx2.Request] = []
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        seen.append(request)
+        return _reply(request)
+
+    provider = {"name": "openrouter", "base_url": "https://openrouter.ai/api", "key_env": "OPENROUTER_API_KEY",
+                "send_effort": False, "strict_tools": False}
+    with SpendController(tmp_path / "spend.db", load_settings().runtime) as spend:
+        c = ClaudeClient(spend, "dev", effort="low", timeout_s=5, max_attempts=1, provider=provider)
+        c.sdk = c.sdk.with_options(http_client=anthropic.DefaultHttpxClient(transport=httpx2.MockTransport(handler)))
+        c.create(model="anthropic/claude-haiku-5.5", system=[{"type": "text", "text": "ROLE: research\nTest."}],
+                 messages=[{"role": "user", "content": "Profile the data."}], tools=RESEARCH_TOOLS, max_tokens=500, run_id="RUN-OR")
+    req = seen[0]
+    assert str(req.url) == "https://openrouter.ai/api/v1/messages"
+    assert req.headers["authorization"] == "Bearer test-openrouter-key-not-real"
+    assert "x-api-key" not in req.headers and "sk-should-never-be-sent" not in str(req.headers)
+    body = json.loads(req.content)
+    assert body["model"] == "anthropic/claude-haiku-5.5"
+    assert "output_config" not in body and all("strict" not in t for t in body["tools"])
+
+
+def test_missing_provider_key_sends_nothing(tmp_path, monkeypatch):
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+    provider = {"name": "openrouter", "base_url": "https://openrouter.ai/api", "key_env": "OPENROUTER_API_KEY"}
+    with SpendController(tmp_path / "spend.db", load_settings().runtime) as spend:
+        with pytest.raises(ModelCallError) as e:
+            ClaudeClient(spend, "dev", provider=provider)
+        assert spend.summary()["committed_usd"] == 0
+    assert e.value.kind == "no_key"
+
+
+def test_price_check_flags_provider_prices_above_configured():
+    from hedgeproof.agents.cli import check_prices
+
+    rt = load_settings().runtime
+    research, practice = rt["models"]["research"], rt["models"]["practice"]
+    fine = [{"id": research, "pricing": {"prompt": "0.000002", "completion": "0.00001", "input_cache_read": "0.0000001"}},
+            {"id": practice, "pricing": {"prompt": "0.0000001", "completion": "0.0000005"}}]
+    assert check_prices(rt, fine) == []
+    dearer = [{"id": research, "pricing": {"prompt": "0.000003", "completion": "0.00001"}}, fine[1]]
+    problems = check_prices(rt, dearer)
+    assert len(problems) == 1 and "prompt" in problems[0]
+    assert any("not in the provider's model list" in p for p in check_prices(rt, fine[:1]))

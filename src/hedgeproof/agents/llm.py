@@ -12,6 +12,7 @@
 from __future__ import annotations
 
 import json
+import os
 import time
 from dataclasses import dataclass, field
 from typing import Any, Callable
@@ -49,13 +50,32 @@ def request_bytes(system: Any, messages: list[Any], tools: list[dict[str, Any]])
 
 
 class ClaudeClient:
+    """Claude through the official Anthropic SDK, directly or via an Anthropic-compatible provider.
+
+    ``provider`` comes from config/runtime.toml. For OpenRouter the SDK is given
+    the provider's base URL and the key from ``provider["key_env"]`` as an
+    explicit auth token (so no other key in the environment is read or sent).
+    The key is never logged or stored.
+    """
+
     mode = "live"
 
-    def __init__(self, spend: SpendController, phase: str, effort: str = "medium", timeout_s: float = 120.0, max_attempts: int = 2):
+    def __init__(self, spend: SpendController, phase: str, effort: str = "medium", timeout_s: float = 120.0, max_attempts: int = 2,
+                 provider: dict[str, Any] | None = None):
         import anthropic
 
+        provider = provider or {"name": "anthropic"}
         self.anthropic = anthropic
-        self.sdk = anthropic.Anthropic(max_retries=0, timeout=timeout_s)  # key read from ANTHROPIC_API_KEY; never logged
+        self.provider = provider.get("name", "anthropic")
+        if self.provider == "anthropic":
+            self.sdk = anthropic.Anthropic(max_retries=0, timeout=timeout_s)  # key read from ANTHROPIC_API_KEY
+        else:
+            key = os.environ.get(provider["key_env"], "")
+            if not key:
+                raise ModelCallError("no_key", f"{provider['key_env']} is not set in this terminal; nothing was sent")
+            self.sdk = anthropic.Anthropic(base_url=provider["base_url"], auth_token=key, max_retries=0, timeout=timeout_s)
+        self.send_effort = bool(provider.get("send_effort", True))
+        self.strict_tools = bool(provider.get("strict_tools", True))
         self.spend, self.phase, self.effort, self.max_attempts = spend, phase, effort, max_attempts
 
     def create(self, *, model: str, system: list[dict[str, Any]], messages: list[Any], tools: list[dict[str, Any]],
@@ -65,10 +85,11 @@ class ClaudeClient:
         for attempt in range(self.max_attempts):
             res: Reservation = self.spend.reserve(run_id, self.phase, model, request_bytes(system, messages, tools), max_tokens)
             t0 = time.monotonic()
-            kwargs: dict[str, Any] = {"model": model, "max_tokens": max_tokens, "system": system, "messages": messages,
-                                      "output_config": {"effort": self.effort}}
+            kwargs: dict[str, Any] = {"model": model, "max_tokens": max_tokens, "system": system, "messages": messages}
+            if self.send_effort:
+                kwargs["output_config"] = {"effort": self.effort}
             if tools:
-                kwargs["tools"] = tools
+                kwargs["tools"] = tools if self.strict_tools else [{k: v for k, v in t.items() if k != "strict"} for t in tools]
             try:
                 resp = self.sdk.messages.create(**kwargs)
             except a.APITimeoutError as e:
@@ -90,7 +111,8 @@ class ClaudeClient:
                     last_err = ModelCallError("server", f"server error {e.status_code}")
                     time.sleep(3)
                     continue
-                raise ModelCallError("rejected", f"request rejected: {type(e).__name__} {e.status_code}") from None
+                detail = str(getattr(e, "message", "") or "")[:300]
+                raise ModelCallError("rejected", f"request rejected: {type(e).__name__} {e.status_code}: {detail}") from None
             usage = {
                 "input_tokens": resp.usage.input_tokens or 0,
                 "output_tokens": resp.usage.output_tokens or 0,

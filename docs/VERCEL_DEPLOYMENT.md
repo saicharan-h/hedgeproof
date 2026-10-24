@@ -16,8 +16,11 @@ This document explains how to deploy HedgeProof to Vercel and what works there.
 * **Docker sandbox** — Vercel has no Docker. Generated-code execution is a
   local-only feature. The sandboxed verification path (F2, V6) is skipped on
   Vercel, as it is in environments without Docker.
-* **Operator code TTY** — there is no console. A demo code is read from
-  `HEDGEPROOF_OPERATOR_CODE` (default `DEMO01`).
+* **Operator code TTY** — there is no console. The code is never published:
+  set `HEDGEPROOF_OPERATOR_CODE` as a Vercel secret only if you need human-only
+  actions on the deployment; otherwise each cold start uses a random code that
+  nobody knows, so approvals, the holdout opening and fault injection are inert
+  on the public URL (the deployment is a read-only showcase).
 * **Persistent state** — serverless functions are stateless; SQLite does not
   persist across invocations. State resets per cold start. Persistent state
   (Postgres/Neon) is Phase 2.
@@ -26,12 +29,26 @@ This document explains how to deploy HedgeProof to Vercel and what works there.
 
 ## Environment variables (set in the Vercel dashboard)
 
-| Name | Required | Example |
+| Name | Required | Example (dummy) |
 |---|---|---|
-| `OPENROUTER_API_KEY` | for chat | `sk-or-...` |
-| `OPENROUTER_MODEL` | optional | `anthropic/claude-sonnet-4` |
 | `HEDGEPROOF_SCENARIO` | optional | `us` or `india` |
-| `HEDGEPROOF_OPERATOR_CODE` | optional | `DEMO01` |
+| `HEDGEPROOF_PUBLIC_CHAT` | optional; chat is OFF unless `1` | `1` |
+| `OPENROUTER_API_KEY` | only if chat is enabled | `sk-or-...` (Vercel secret; never in the repo) |
+| `OPENROUTER_MODEL` | optional; fixed by the server | `anthropic/claude-haiku-5.5` |
+| `HEDGEPROOF_OPERATOR_CODE` | optional; keep unset for a public demo | random secret, never `DEMO01` |
+
+## Security on a public URL
+
+* A public chat endpoint spends the team's OpenRouter credit, and serverless
+  functions have no durable spend ledger, so HedgeProof's spend controller
+  cannot guard it. Chat is therefore off by default. If you enable it, use an
+  OpenRouter key with its own small credit limit, keep the cheap fixed model,
+  and turn it off after the demo.
+* The server fixes the model (callers cannot pick an expensive one), caps the
+  message at 2,000 characters and the reply at 300 tokens, and never echoes
+  internal errors.
+* The research agents, the sandbox and the spend controller run only locally
+  (`uv run hedgeproof ...`); the Vercel deployment is a showcase on SYNTHETIC data.
 
 ## Deploy steps
 
