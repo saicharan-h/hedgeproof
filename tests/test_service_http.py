@@ -17,7 +17,7 @@ def _client(tmp: Path) -> tuple[TestClient, Env]:
 
 
 def test_health_reports_policy_and_sealed_holdout():
-    with tempfile.TemporaryDirectory() as d:
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as d:
         c, env = _client(Path(d))
         h = c.get("/health").json()
         assert h["policy_sha256"] == env.settings.policy.sha256
@@ -26,7 +26,7 @@ def test_health_reports_policy_and_sealed_holdout():
 
 
 def test_approval_requires_operator_code_and_agent_cannot_self_approve():
-    with tempfile.TemporaryDirectory() as d:
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as d:
         c, env = _client(Path(d))
         pkt = env.packet()
         t = env.terms(pkt, 5)
@@ -44,7 +44,7 @@ def test_approval_requires_operator_code_and_agent_cannot_self_approve():
 
 
 def test_ack_timeout_returns_504_then_status_query_reconciles():
-    with tempfile.TemporaryDirectory() as d:
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as d:
         c, env = _client(Path(d))
         t = env.terms(env.packet(), 5)
         ih = c.post("/intents", json={"terms": t.model_dump(mode="json"), "requested_by": "risk"}).json()["intent"]["intent_hash"]
@@ -61,7 +61,7 @@ def test_ack_timeout_returns_504_then_status_query_reconciles():
 
 
 def test_validation_rows_are_withheld_and_holdout_split_refused():
-    with tempfile.TemporaryDirectory() as d:
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as d:
         c, env = _client(Path(d))
         r = c.post("/backtests", json={"lineage_id": "TEST-HTTP", "split": "validation", "template": "ols36"}).json()
         assert r["rows"] == [] and r["metrics"]["adaptive"]["n_positions"] == 23
@@ -74,7 +74,7 @@ def test_validation_rows_are_withheld_and_holdout_split_refused():
 
 
 def test_operator_code_locks_after_repeated_failures():
-    with tempfile.TemporaryDirectory() as d:
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as d:
         c, env = _client(Path(d))
         for _ in range(10):
             c.post("/simulator/arm-ack-timeout", headers={"X-Operator-Code": "NOPE00"})
@@ -87,7 +87,7 @@ def test_events_and_artifacts_are_append_only():
 
     import pytest
 
-    with tempfile.TemporaryDirectory() as d:
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as d:
         _, env = _client(Path(d))
         env.packet()
         with pytest.raises(sqlite3.DatabaseError):

@@ -2,11 +2,13 @@
 #
 # HedgeProof's MVP needs no personal or agency records: one fictional agency,
 # one declared monthly diesel forecast. The historical example uses U.S. public
-# market data; it is not a validated deployment for any real (for example
-# Indian) transit agency.
+# market data (EIA) as an illustrative proxy; the fictional agency is styled on
+# an Indian city bus operator (for example BMTC, Bengaluru) for the hackathon
+# context. It is NOT a validated deployment for any real Indian (or other)
+# transit agency, and no Indian market data is used or claimed.
 
-label = "Fixture: mid-size city bus agency"
+label = "Fixture: mid-size Indian city bus agency (illustrative)"
 data_label = "FIXTURE"
 forecast_gallons_per_month = 420000
 currency = "USD"
-note = "Declared scenario input chosen for the demonstration. Not agency data, not a forecast."
+note = "Declared scenario input chosen for the demonstration. Fictional Indian-style agency; underlying market data is U.S. public EIA data used as an illustrative proxy. Not agency data, not a forecast, not Indian market data."
