@@ -25,6 +25,8 @@ import numpy as np
 from hedgeproof.config import Policy, Settings
 
 STRATEGIES = ("unhedged", "fixed50", "adaptive")
+# Variance of dF below this ($/gal squared) is treated as zero (floating-point rounding of identical values).
+ZERO_VARIANCE_TOL = 1e-12
 
 
 # --- Sizing ------------------------------------------------------------------
@@ -264,7 +266,7 @@ def ols_hedge_ratio(window: list[dict[str, Any]]) -> float:
     ds = np.array([r["dS"] for r in window], dtype=float)
     df = np.array([r["dF"] for r in window], dtype=float)
     var = float(np.var(df, ddof=1))
-    if var == 0 or not math.isfinite(var):
+    if not (math.isfinite(var) and var > ZERO_VARIANCE_TOL):
         raise ValueError("zero variance in dF")
     return float(np.cov(ds, df, ddof=1)[0, 1] / var)
 
@@ -278,7 +280,7 @@ def ewma_hedge_ratio(window: list[dict[str, Any]], halflife: float = 12.0) -> fl
     w = w / w.sum()
     mf, ms = float(np.sum(w * df)), float(np.sum(w * ds))
     var = float(np.sum(w * (df - mf) ** 2))
-    if var == 0 or not math.isfinite(var):
+    if not (math.isfinite(var) and var > ZERO_VARIANCE_TOL):
         raise ValueError("zero variance in dF")
     return float(np.sum(w * (df - mf) * (ds - ms)) / var)
 
@@ -297,7 +299,7 @@ def estimate(window, config):
     ds = np.array([r["dS"] for r in window], dtype=float)
     df = np.array([r["dF"] for r in window], dtype=float)
     var = float(np.var(df, ddof=1))
-    if var == 0.0:
+    if not var > 1e-12:
         raise ValueError("zero variance in dF")
     return float(np.cov(ds, df, ddof=1)[0, 1] / var)
 ''',
@@ -313,7 +315,7 @@ def estimate(window, config):
     mf = float(np.sum(w * df))
     ms = float(np.sum(w * ds))
     var = float(np.sum(w * (df - mf) ** 2))
-    if var == 0.0:
+    if not var > 1e-12:
         raise ValueError("zero variance in dF")
     return float(np.sum(w * (df - mf) * (ds - ms)) / var)
 ''',
