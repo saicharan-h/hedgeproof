@@ -111,6 +111,9 @@ def cmd_sandbox_check(args: argparse.Namespace) -> None:
 
 
 def main(argv: list[str] | None = None) -> None:
+    for stream in (sys.stdout, sys.stderr):  # never crash on a console that cannot print a character
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(errors="replace")
     p = argparse.ArgumentParser(prog="hedgeproof", description="HedgeProof: verifiable AI hedge research for city bus fuel budgets")
     sub = p.add_subparsers(dest="cmd", required=True)
 
