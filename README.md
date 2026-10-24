@@ -31,10 +31,10 @@ A city bus agency buys diesel every month but fixes its fuel budget months earli
 | Quant engine: sizing, budget-error identity, variance, BaR95, baselines, paired block bootstrap | Implemented; financial invariants pass |
 | Trusted service: gate G01-G12, operator-coded approvals, paper simulator, reconciliation, holdout lock, evidence packets | Implemented; 16 deterministic cases pass on SYNTHETIC fixtures |
 | Docker sandbox for generated code | Implemented; isolation verified through the runner (cloud container) |
-| Five-role LangGraph workflow with spend controller | Implemented; verified with the labelled scripted test double; **live AI runs pending API funding** |
+| Five-role LangGraph workflow with spend controller | Implemented; verified with the labelled scripted test double and in a first live run (Claude Haiku 5.5 via OpenRouter: 21 model calls, $0.0093 measured; it ended ABSTAIN and exposed a revision loop, since fixed, D-037) |
 | Streamlit dashboard | Implemented; verified in a headless browser |
 | Development baselines on EIA data | Done (labelled development-only, n = 9; see Tests and results) |
-| Live agent trials, validation scoring, holdout opening | Pending (see `docs/BUILD_STATE.md`) |
+| Live agent trials, validation scoring, holdout opening | First live practice run done; comparison trials, validation scoring and the holdout opening pending (see `docs/BUILD_STATE.md`) |
 | GASB-informed effectiveness diagnostic (proposal stretch module) | Deferred |
 
 Live progress, test counts, hashes, spend and blockers: [`docs/BUILD_STATE.md`](docs/BUILD_STATE.md). Decisions and overrides: [`docs/DECISIONS.md`](docs/DECISIONS.md).

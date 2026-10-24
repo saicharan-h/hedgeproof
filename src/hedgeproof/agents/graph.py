@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 import time
+import traceback
 from pathlib import Path
 from typing import Any, TypedDict
 
@@ -105,6 +106,9 @@ class Workflow:
                 return {"status": "HALT", "reason": str(e)}
             except ServiceError as e:
                 return {"status": "HALT", "reason": f"trusted service refused: {e.code} {e.body.get('message', '')}"}
+            except Exception as e:  # unknown state (G12): halt with the reason recorded, so the trace is still saved
+                traceback.print_exc()
+                return {"status": "HALT", "reason": f"unexpected error in {fn.__name__}: {type(e).__name__}: {str(e)[:200]}"}
         wrapped.__name__ = fn.__name__
         return wrapped
 
