@@ -34,7 +34,7 @@ A city bus agency buys diesel every month but fixes its fuel budget long before 
 
 Setup 20 minutes before (presenting laptop, PowerShell, inside `hedgeproof`):
 
-1. `git pull`, then `uv run pytest -q` (expect `71 passed`).
+1. `git pull`, then `uv run pytest -q` (expect `142 passed`).
 2. Terminal 1: `uv run hedgeproof serve --mode rehearsal` → note the OPERATOR CODE (do not show it on screen for long).
 3. Terminal 2: `uv run hedgeproof dashboard` → browser at http://127.0.0.1:8501, zoom 125%.
 4. Terminal 3: `uv run hedgeproof run research --lineage REHEARSAL-CP1 --agents scripted` (about 20 s).
