@@ -1,6 +1,6 @@
 # HedgeProof deterministic evaluation (16 predefined cases)
 
-Generated 2026-10-24T06:17:42+00:00 from commit `4030fa9896`. SYNTHETIC fixture data, temporary databases, TEST lineages, no model calls. Sandbox: Docker sandbox ready.
+Generated 2026-10-24T07:22:47+00:00 from commit `8cdaa68fdc`. SYNTHETIC fixture data, temporary databases, TEST lineages, no model calls. Sandbox: Docker sandbox ready.
 
 **Faults caught: 8/8. Valid cases handled: 8/8.** Targets in the proposal were at least 7/8 each and zero policy-violating or duplicate orders.
 
@@ -19,7 +19,7 @@ Generated 2026-10-24T06:17:42+00:00 from commit `4030fa9896`. SYNTHETIC fixture 
 | V3 Legitimate close: SELL_CLOSE 5 next month, same delivery | valid | PASS | ELIGIBLE; position flat | `{"status": "FILLED", "contracts_after": [0], "fill_price": 2.591040616214328}` |
 | V4 Safe retry: query by key, retry with the same key | valid | PASS | original order returned; 1 order, 1 fill | `{"status_after_timeout": "FILLED", "replayed": true, "orders": 1, "fills": 1}` |
 | V5 Justified no-hedge (SYNTHETIC: hedging raises variance) | valid | PASS | ABSTAIN with PASS_RULE_NOT_MET; zero intents | `{"verdict": "ABSTAIN", "conditions": {"variance_lower_than_unhedged": false, "bar95_not_worse_than_unhedged": true, "zero_policy_breaches": true, "verdict": "ABSTAIN"}, "evidence": "PASS_RULE_NOT_MET", "intents": 0}` |
-| V6 Valid estimator (vetted OLS 36) | valid | PASS | verification passes; development backtest has 10 positions | `{"verification_passed": true, "positions": 10, "runtime_s": 0.508}` |
+| V6 Valid estimator (vetted OLS 36) | valid | PASS | verification passes; development backtest has 10 positions | `{"verification_passed": true, "positions": 10, "runtime_s": 0.424}` |
 | V7 Compliant alternative after CASH_STRESS_CAP | valid | PASS | 7 blocked; approval not reusable; new 5-contract intent ELIGIBLE | `{"first_reasons": ["CASH_STRESS_CAP", "APPROVAL_MISSING_OR_STALE"], "approve_7": "APPROVAL_NOT_ALLOWED", "gate_7_after": ["CASH_STRESS_CAP", "APPROVAL_MISSING_OR_STALE"], "gate_5": "ELIGIBLE"}` |
 | V8 Restart between approval and submission | valid | PASS | approval and ledger persist; 1 fill; holdout unchanged | `{"status": "FILLED", "fills": 1, "holdout": "sealed"}` |
 
