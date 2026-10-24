@@ -35,6 +35,10 @@ packages = ["src/hedgeproof"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# No .pytest_cache folder (unused; one made by an elevated shell is unwritable from a normal one on Windows).
+addopts = "-p no:cacheprovider"
+# Delete each passing test's temporary folder (the per-run root itself is created by tests/conftest.py).
+tmp_path_retention_policy = "failed"
 markers = [
     "docker: needs a running Docker daemon and the hedgeproof-sandbox image",
     "realdata: needs the committed EIA raw files in data/raw/",

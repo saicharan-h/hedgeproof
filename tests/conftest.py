@@ -14,6 +14,19 @@ HAVE_PROC_FD = os.path.isdir("/proc/self/fd")
 DB_SUFFIXES = (".db", ".db-wal", ".db-shm", ".db-journal")
 
 
+@pytest.hookimpl(tryfirst=True)
+def pytest_configure(config: pytest.Config) -> None:
+    """Give every run its own new temporary root (unless --basetemp is given).
+
+    pytest normally reuses one shared folder, %TEMP%\\pytest-of-<user> on Windows.
+    A folder there that an administrator (elevated) shell created is unreadable
+    from a normal shell ([WinError 5] Access is denied), which made every test
+    using tmp_path error on the demo laptop. A fresh folder per run avoids it.
+    """
+    if config.option.basetemp is None:
+        config.option.basetemp = config._hedgeproof_basetemp = tempfile.mkdtemp(prefix="hedgeproof-pytest-")
+
+
 def _open_files() -> set[str]:
     """Paths this process holds open (Linux), read from /proc/self/fd."""
     out = set()

@@ -100,3 +100,12 @@ def test_spend_controller_closes_and_is_reusable_after_reopen():
             sc.summary()
         with SpendController(path, load_settings().runtime) as reopened:
             assert reopened.summary()["settled_calls"] == 1
+
+
+def test_tmp_path_lives_in_a_fresh_per_run_root(tmp_path, request):
+    """tmp_path must not depend on the shared pytest-of-<user> folder ([WinError 5] on the demo laptop)."""
+    root = getattr(request.config, "_hedgeproof_basetemp", None)
+    if root is None:
+        pytest.skip("--basetemp was given on the command line")
+    assert tmp_path.resolve().is_relative_to(Path(root).resolve())
+    assert "pytest-of-" not in str(tmp_path)
