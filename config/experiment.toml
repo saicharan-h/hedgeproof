@@ -1,0 +1,92 @@
+# HedgeProof experiment definition (FROZEN before final evaluation).
+#
+# Splits, availability assumptions, costs, metric definitions, the pass rule and
+# the research-attempt limits. Its SHA-256 is recorded in every freeze record
+# and evidence packet. Model choice and API spending live in runtime.toml,
+# which is operational and not part of the evidence hash.
+
+experiment_id = "HP-FINAL"
+
+# Agents may see raw prices only for sessions strictly before this date.
+# Validation exists to agents only as engine metrics; the holdout is sealed.
+research_clock = "2018-01-01"
+
+# Hedge month p = the month the position opens. A position counts in a split
+# only if it opens AND closes inside the split's dates (boundary positions are
+# purged from evaluation but may serve as training history once closed).
+[splits]
+warmup_first_hedge_month = "2014-01"
+
+[splits.development]
+first_hedge_month = "2017-02"
+last_hedge_month = "2017-11"
+start_date = "2014-01-01"
+end_date = "2017-12-31"
+expected_positions = 10
+
+[splits.validation]
+first_hedge_month = "2018-01"
+last_hedge_month = "2019-11"
+start_date = "2018-01-01"
+end_date = "2019-12-31"
+expected_positions = 23
+
+[splits.holdout]
+first_hedge_month = "2020-02"
+last_hedge_month = "2024-02"
+start_date = "2020-02-01"
+end_date = "2024-03-31"
+expected_positions = 49
+
+[operational]
+# The one paper decision, after every holdout position has closed.
+# It cannot be scored: EIA futures history ends 5 Apr 2024.
+replay_date = "2024-04-01"
+hedge_month = "2024-04"
+
+[availability]
+spot_lag_sessions = 1
+stale_max_sessions = 3
+fill = "official 2:30 p.m. NYMEX closing price of the entry or exit session, as published by EIA"
+decision_time = "before the d_p close, using sessions up to d_p - 1 only"
+physical_purchase = "one purchase of Q gallons at Gulf Coast spot on d_(p+1), the exit session (spot is a proxy for the invoice price)"
+revisions = "EIA historical vintages are not available; revisions remain a limitation"
+
+[estimator]
+windows = [24, 36]
+# Decision p trains on completed positions q <= p - 2 (position p - 1 closes at
+# the same close where position p fills).
+purge_positions = 2
+raw_lower_bound = -1.0
+raw_upper_bound = 2.0
+clip_low = 0.0
+clip_high = 0.75
+allowed_imports = ["math", "statistics", "numpy"]
+max_source_bytes = 8192
+
+[costs]
+# Declared assumptions, not quotes. The double_cost diagnostic doubles both.
+fee_per_contract_round_trip_usd = 10.00
+slippage_ticks_per_side = 1
+tick_value_usd = 4.20
+
+[metrics]
+variance_ddof = 1
+bar_quantile = 0.95
+bar_method = "linear"
+bootstrap_block_length = 3
+bootstrap_resamples = 2000
+bootstrap_seed = 20261024
+bootstrap_interval = 0.90
+
+[pass_rule]
+rule = "PASS if Var(adaptive) < Var(unhedged) and BaR95(adaptive) <= BaR95(unhedged) and policy_breaches == 0, else ABSTAIN"
+also_reported = "adaptive against fixed 50% (never hidden, not part of the rule)"
+selection = "freeze the candidate with the lowest validation variance among candidates meeting the rule on validation; tie -> simpler configuration; none -> abstain at validation, holdout stays sealed"
+
+[research_limits]
+# Proposal maximum: 6 candidate configurations per lineage, 2 repairs each.
+max_candidates_per_lineage = 6
+max_candidates_per_run = 3
+max_repairs_per_candidate = 2
+max_tool_rounds_per_turn = 6

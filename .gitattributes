@@ -1,0 +1,5 @@
+# Keep bytes identical on Windows and Linux so recorded SHA-256 hashes match.
+* text=auto eol=lf
+*.xls binary
+*.pdf binary
+*.png binary

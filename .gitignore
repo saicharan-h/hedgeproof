@@ -218,3 +218,24 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# --- HedgeProof additions (runbook section 4) ---
+# Env and secret files: never commit any env file, including examples or samples
+.env.*
+*.env
+.streamlit/secrets.toml
+# Environments and caches
+.venv/
+# Local state: SQLite databases, logs, sandbox scratch
+var/
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+*.db-wal
+*.db-shm
+# OS and editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
