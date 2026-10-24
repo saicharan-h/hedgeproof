@@ -119,7 +119,7 @@ The team's application API budget is **$10 total**: $7 for development, rehearsa
 
 ## Tests and results
 
-`uv run pytest -q`: 53 deterministic tests (financial invariants, the 16 predefined cases, HTTP boundary tests, sandbox isolation, spend controller, workflow with the scripted test double). Latest run and per-case evidence: [`results/EVAL_SUMMARY.md`](results/EVAL_SUMMARY.md). These check the enforcement code on SYNTHETIC inputs; they do not measure hedge performance. Empirical results on EIA data will be added with their data version, code version and run identifiers. No savings or performance are claimed.
+`uv run pytest -q`: 56 deterministic tests (financial invariants, the 16 predefined cases, HTTP boundary tests, sandbox isolation, spend controller, workflow with the scripted test double). Latest run and per-case evidence: [`results/EVAL_SUMMARY.md`](results/EVAL_SUMMARY.md). These check the enforcement code on SYNTHETIC inputs; they do not measure hedge performance. Empirical results on EIA data will be added with their data version, code version and run identifiers. No savings or performance are claimed.
 
 ## Limitations
 
