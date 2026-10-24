@@ -1,0 +1,38 @@
+# HedgeProof agency policy v1 (FROZEN).
+#
+# Read by the trusted service at start. Its SHA-256 is the "policy hash"; every
+# evidence packet, paper intent and human approval is bound to it. Changing any
+# value creates a different policy, and everything bound to the old hash is
+# refused by the gate (G03 POLICY_MISMATCH, G11 APPROVAL_MISSING_OR_STALE).
+#
+# Runtime agents cannot read or write this file through any tool.
+
+policy_version = "v1"
+agency_label = "Fixture: mid-size city bus agency (fictional; declared scenario inputs)"
+
+# G05: the only approved instrument. NY Harbor ULSD futures, CME code HO.
+# EIA still labels the series "No. 2 Heating Oil"; the NYMEX contract has been
+# ULSD since the May 2013 contract.
+instrument = "HO"
+contract_size_gal = 42000
+
+# G06: the agency may never be net short.
+allow_net_short = false
+
+# G07: long contracts <= floor(max_hedge_ratio * forecast_gallons / contract_size_gal).
+max_hedge_ratio = 0.75
+
+# G08: open only on the first session of the hedge month; close on the first
+# session of the next month; hold for one month only.
+holding_months = 1
+
+# G09: margin stress if the hedge contract falls 25% during the month,
+# 42,000 * n * shock * F_ref, must stay within the cash cap.
+cash_stress_shock = 0.25
+cash_stress_cap_usd = 250000
+
+# G04: evidence data must end within this many sessions before the replay date.
+stale_max_sessions = 3
+
+# G11: a human must approve the exact intent hash before submission.
+require_human_approval = true

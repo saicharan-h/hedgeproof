@@ -1,0 +1,44 @@
+# HedgeProof decision log
+
+Decisions D-001 to D-016 were made before the hacking start (Fri 23 Oct to Sat 24 Oct 2026 morning, IST) and are copied unchanged from `docs/planning/03_HedgeProof_Plan_Board_Scripts.md`, section 6. Later decisions record current overrides. History is preserved: a superseded decision stays here, marked as superseded.
+
+Authority order (from the team's 24 Oct instructions): (1) confirmed organizer rules and the latest team facts; (2) the accepted proposal `docs/planning/Submission.pdf`; (3) the older handoff, contract and implementation preferences.
+
+## Pre-start decisions (copied)
+
+| ID | Decision | Reason |
+|---|---|---|
+| D-001 | Public repo `saicharan-h/hedgeproof` (pending team confirmation) | That account is already connected to Claude with push access |
+| D-002 | Python 3.12 with uv. Candidate set resolved on Python 3.11 to 3.13 on 23 Oct: anthropic 2.2.0, langgraph 1.2.16, langgraph-checkpoint-sqlite 3.1.2, pydantic 2.14.1, fastapi 0.161.1, uvicorn 0.54.0, httpx 0.28.1, streamlit 1.66.1, numpy 2.5.4, pandas 3.1.0, scipy 1.18.1, statsmodels 0.15.0, pyarrow 26.0.0, xlrd 2.0.2, pytest 9.1.1. Locked after the first working run. **Partly superseded by D-021 and D-022** | Checked compatibility, not assumed |
+| D-003 | Use the Anthropic SDK directly inside LangGraph nodes, with no model wrapper library | Fewer layers, and an API surface checked against the installed package |
+| D-004 | Default model `claude-opus-5-5` (effort medium), Haiku 5.5 for plumbing runs; final choice after the spend cap is known. **Superseded by D-016, then D-028** | Quality of agent decisions within the budget |
+| D-005 | Sandbox receives one window per line | Look-ahead is impossible by construction, not by inspection |
+| D-006 | A position belongs to a split only if it opens and closes inside it | Clean, explainable purging |
+| D-007 | Training for decision p uses positions up to p−2 | Position p−1 closes at the same instant the new entry fills |
+| D-008 | Cash stress: a 25% one-month fall in the hedge contract, against a $250,000 cap, applied in backtest sizing and in the gate | A clearly specified, declared liquidity scenario; not a broker margin schedule |
+| D-009 | Costs: $10 per contract round trip plus one tick ($4.20) per side | Declared assumption; the double-cost diagnostic tests it |
+| D-010 | The operational paper decision uses replay date 1 Apr 2024, after every holdout position closed; its outcome is not scored | Keeps the holdout and the trade temporally coherent |
+| D-011 | All frozen strategies are scored in the single holdout opening | One consumption, no reruns |
+| D-012 | Approvals need a per-start token held by the human at the dashboard; the agent process has no approval route | Separation of duties in a prototype. This is not user authentication, and we say so |
+| D-013 | Claude's commits are authored as `Claude <noreply@anthropic.com>`; each teammate commits under their own name | Truthful attribution in a history that is judged |
+| D-014 | Raw EIA files are committed unmodified, with attribution | EIA content is public domain, and EIA is unreachable from Claude's workspace |
+| D-015 | The cash-stress cap sizes with F_ref, Contract 3's close on the session before entry, which is the same delivery month the hedge buys | The fill price is not known when the order is sized, so using it would be a small look-ahead |
+| D-016 | For a $20 API budget (24 Oct): Sonnet 5.5 at effort medium for showcase and comparison runs, Haiku 5.5 for practice runs, Opus 5.5 only if measured costs allow. A run stops at $1.00 measured; all runs stop at $15 total, keeping $5 for the live demo. At most 3 candidates per run (6 per experiment) and 2 repairs per candidate. Comparison trials use N = 2 per cell if a run costs $0.80 or less, otherwise N = 1, disclosed. **Budget numbers superseded by D-018** | The Console balance was $0, and Saicharan is considering $20. Deterministic work needs no AI calls, so the budget goes to agent runs only |
+
+## Decisions during the hacking round (24 Oct 2026, IST)
+
+| ID | Decision | Reason |
+|---|---|---|
+| D-017 | The team confirmed the hacking round has officially started; no exact announcement timestamp was supplied, so none is recorded. Organizer judging priorities, in order: (1) simplicity and explainability, (2) scalability and minimalism, (3) security, especially personal data. A demo video (screen recording, Google Drive link in the README) is required; its length is not yet confirmed. Final submission deadline: not yet confirmed | Latest organizer facts, relayed by the team |
+| D-018 | Application API budget is **$10 total** (supersedes the $20/$15/$5 numbers in D-016 and HANDOFF): $7 for development, rehearsals and checkpoints, $3 reserved for final demo and judging, as phase allowances in one ledger. Provisional $1.00 maximum per complete research run, tightened after measurement. One durable controller reserves the worst-case cost before every call, reconciles real usage afterwards, keeps reservations for uncertain timeouts, and refuses work that would exceed any limit. Last confirmed Console balance: $0; no purchase confirmed | Team agreement, 24 Oct |
+| D-019 | Claude develops on the session branch `claude/wonderful-keller-enn1fn` and integrates into `main` through a pull request that a teammate merges on GitHub (supersedes HANDOFF's "push directly to main" start message, which was not used) | The cloud session's required workflow; no force-push, no history rewriting |
+| D-020 | Configuration uses TOML read by Python's standard `tomllib` (not YAML). A config hash is the SHA-256 of the canonical JSON of the parsed values, so comments and Windows line endings do not change it. Model choice and API limits live in `config/runtime.toml`, which is operational and outside the evidence hash | One fewer dependency; hashes match on the Windows laptop and in the cloud |
+| D-021 | Minimal dependency set: no scipy or statsmodels (numpy computes the OLS ratio and the bootstrap); no langgraph-checkpoint-sqlite (research counts persist in the trusted database, and runs are short); the derived period table is a CSV file (readable by judges) rather than Parquet | Organizer emphasis on minimalism |
+| D-022 | Locked versions are what resolved in the cloud session on 24 Oct 2026 (see `uv.lock`): anthropic 2.3.0, langgraph 1.2.17, fastapi 0.162.0, pydantic 2.14.1, uvicorn 0.54.0, httpx 0.28.1, streamlit 1.66.1, numpy 2.5.4, pandas 3.1.0, xlrd 2.0.2, pytest 9.1.1 | Verified in this environment, not assumed |
+| D-023 | One per-start **operator code**, printed only in the trusted service's own window, is required for the two human-only actions: approving an exact intent, and opening the sealed holdout. The agent process never receives it and has no tool for either action | Separation of duties; still a local prototype mechanism, not production authentication |
+| D-024 | Rehearsal lineages (`REHEARSAL-…`) may run development backtests only. Validation backtests on real data are allowed only in the real lineage `HP-FINAL`. The real holdout opens only for `HP-FINAL` in the real database, and a committed file `results/holdout_HP-FINAL.json` blocks a second opening even from a fresh database. Tests use `TEST-…` lineages on temporary databases with SYNTHETIC data | Renaming a run or starting a new database must not reset the research budget or reopen the holdout |
+| D-025 | The March 2024 position (opens 1 Mar 2024, closes 1 Apr 2024) crosses the holdout end and is labelled `purged`, so four positions are purged in total: Dec 2017, Dec 2019, Jan 2020 and Mar 2024. Split counts stay 10 / 23 / 49 | Same purging rule everywhere |
+| D-026 | A training window is the most recent W *valid* completed positions with hedge month ≤ p − 2; rejected rows are skipped, never patched | Precise rule for windows that span a rejected month |
+| D-027 | Budget-error variance uses the sample variance (ddof = 1), declared in `experiment.toml` | The pass rule compares strategies on identical positions, so the choice is declared, not tuned |
+| D-028 | Runtime models (verified against the Claude API reference on 24 Oct): `claude-sonnet-5-5` at effort `medium` for research decisions ($2 / $10 per million tokens), `claude-haiku-5-5` for wiring tests ($0.10 / $0.50). `claude-opus-5-5` ($4 / $20) only if measured costs allow. Configurable in `config/runtime.toml` and recorded on every decision. Forced `tool_choice` is not used (it returns an error on these models); decisions use strict tools | Capable, economical, configurable |
+| D-029 | EIA is blocked by this cloud environment's network policy (proxy 403 on `www.eia.gov`). The team downloads the two XLS files in a browser and attaches them unmodified; provenance records who downloaded them and the reported time | No fabricated or substitute price data |
