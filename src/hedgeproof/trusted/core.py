@@ -441,6 +441,14 @@ class TrustedCore:
             raise TrustedError("WINDOW_NOT_ALLOWED", f"window must be one of {self.settings.experiment['estimator']['windows']}")
         if len(source.encode("utf-8")) > self.settings.experiment["estimator"]["max_source_bytes"]:
             raise TrustedError("SOURCE_TOO_LARGE", "estimator source exceeds 8 KB")
+        # A candidate is a configuration (family, window, params): re-testing one this lineage already has
+        # (unless it failed verification) is refused and does not use the candidate budget.
+        config = json.dumps([family[:40], window, params or {}], sort_keys=True)
+        for other in self.list_candidates(lineage_id):
+            if other["status"] != "FAILED_VERIFICATION" and json.dumps([other["family"], other["window"], other["params"]], sort_keys=True) == config:
+                self.store.log(created_by, "candidate_refused", [lineage_id, other["id"]], {"code": "DUPLICATE_CONFIGURATION"})
+                raise TrustedError("DUPLICATE_CONFIGURATION", f"{other['id']} already tests {family}, window {window}, params {params or {}}; "
+                                   "a new candidate must change the family, window or halflife", 409)
         with self.store.tx() as c:
             count = c.execute("SELECT COUNT(*) AS n FROM candidates WHERE lineage_id = ?", (lineage_id,)).fetchone()["n"]
             if count >= limits["max_candidates_per_lineage"]:
@@ -586,8 +594,13 @@ class TrustedCore:
         if kind == "double_cost":
             alt = self.run_backtest(lineage_id, "development", candidate_id, template, actor=actor, cost_multiplier=2.0, record=False)["metrics"]
             result = {"adaptive_std_base": bm["adaptive"]["std_usd"], "adaptive_std_double_cost": alt["adaptive"]["std_usd"],
+                      "adaptive_mean_error_base": bm["adaptive"]["mean_error_usd"], "adaptive_mean_error_double_cost": alt["adaptive"]["mean_error_usd"],
                       "verdict_base": bm["pass_rule"]["verdict"], "verdict_double_cost": alt["pass_rule"]["verdict"]}
-            interp = "Doubling fees and slippage " + ("does not change" if result["verdict_base"] == result["verdict_double_cost"] else "CHANGES") + " the development verdict."
+            same_n = len({r["n"] for r in base["rows"] if r["strategy"] == "adaptive"}) == 1
+            interp = ("Doubling fees and slippage " + ("does not change" if result["verdict_base"] == result["verdict_double_cost"] else "CHANGES")
+                      + f" the development verdict: std ${result['adaptive_std_base']:,.0f} -> ${result['adaptive_std_double_cost']:,.0f}, "
+                      f"mean budget error ${result['adaptive_mean_error_base']:,.0f} -> ${result['adaptive_mean_error_double_cost']:,.0f}."
+                      + (" The contract count was the same every month, so the extra cost moves the mean, not the spread." if same_n else ""))
         elif kind == "window_alt":
             cand = self.candidate(candidate_id) if candidate_id else None
             w0 = cand["window"] if cand else engine.VETTED_TEMPLATES[template]["window"]
@@ -596,9 +609,15 @@ class TrustedCore:
             windows, _ = self._windows_for(rows, w1)
             est = engine.run_template("ols24" if w1 == 24 else "ols36", windows)
             alt = engine.backtest(rows, est, self.settings, with_bootstrap=False)["metrics"]
-            result = {"window_base": w0, "window_alt": w1, "adaptive_std_base": bm["adaptive"]["std_usd"],
-                      "adaptive_std_alt_ols": alt["adaptive"]["std_usd"], "unhedged_std": bm["unhedged"]["std_usd"]}
-            interp = f"OLS with a {w1}-position window gives std ${alt['adaptive']['std_usd']:,.0f} vs ${bm['adaptive']['std_usd']:,.0f} for the candidate."
+            ba, aa = bm["adaptive"], alt["adaptive"]
+            result = {"window_base": w0, "window_alt": w1, "adaptive_std_base": ba["std_usd"], "adaptive_std_alt_ols": aa["std_usd"],
+                      "unhedged_std": bm["unhedged"]["std_usd"], "n_positions": ba["n_positions"],
+                      "months_ratio_clipped_base": ba["months_ratio_clipped"], "months_ratio_clipped_alt": aa["months_ratio_clipped"]}
+            cap = f"{self.settings.policy.max_hedge_ratio:.0%}"
+            interp = (f"OLS with a {w1}-position window gives std ${aa['std_usd']:,.0f} vs ${ba['std_usd']:,.0f} for the candidate; "
+                      f"the hedge ratio was clipped at the {cap} limit in {aa['months_ratio_clipped']} and {ba['months_ratio_clipped']} of {ba['n_positions']} months.")
+            if aa["months_ratio_clipped"] == ba["months_ratio_clipped"] == ba["n_positions"]:
+                interp += f" Both raw estimates exceeded {cap} every month, so both held the same contracts: this split cannot tell the windows apart."
         elif kind == "spot_lag_2":
             t2 = build_period_table(self.market, self.settings.experiment, spot_lag_sessions=2)
             rows2 = [r for r in table_records(t2) if r["split"] == "development" and r["status"] == "ok"]
@@ -608,7 +627,8 @@ class TrustedCore:
             alt = engine.backtest(rows2, est, self.settings, with_bootstrap=False)["metrics"]
             result = {"unhedged_std_lag1": bm["unhedged"]["std_usd"], "unhedged_std_lag2": alt["unhedged"]["std_usd"],
                       "ols_std_lag2": alt["adaptive"]["std_usd"], "verdict_lag2_ols": engine.pass_rule(alt["adaptive"], alt["unhedged"])["verdict"]}
-            interp = "With a two-session spot lag the OLS hedge verdict is " + result["verdict_lag2_ols"] + "."
+            interp = (f"With a two-session spot lag the OLS hedge verdict is {result['verdict_lag2_ols']} "
+                      f"(std ${result['ols_std_lag2']:,.0f} vs ${result['unhedged_std_lag2']:,.0f} unhedged).")
         elif kind == "subperiod":
             rows = base["rows"]
             months = sorted({r["hedge_month"] for r in rows})
@@ -620,7 +640,8 @@ class TrustedCore:
                 out[label] = {"months": ms, "adaptive_std": m["adaptive"]["std_usd"], "unhedged_std": m["unhedged"]["std_usd"],
                               "verdict": engine.pass_rule(m["adaptive"], m["unhedged"])["verdict"]}
             result = out
-            interp = f"Verdict by half: {out['first_half']['verdict']} then {out['second_half']['verdict']} (5 positions each; very small samples)."
+            interp = (f"Verdict by half: {out['first_half']['verdict']} then {out['second_half']['verdict']} "
+                      f"({len(out['first_half']['months'])} and {len(out['second_half']['months'])} positions; very small samples).")
         else:
             raise TrustedError("BAD_REQUEST", "kind must be double_cost, window_alt, spot_lag_2 or subperiod")
         dx = DiagnosticReport(candidate_id=candidate_id or f"template:{template}", kind=kind, split="development", result=result,

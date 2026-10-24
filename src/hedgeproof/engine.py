@@ -121,6 +121,7 @@ def strategy_metrics(rows: list[dict[str, Any]], forecast_gallons: int, policy: 
         "mean_contracts": float(n_arr.mean()) if len(n_arr) else 0.0,
         "mean_exposure_ratio": float(np.mean(n_arr * policy.contract_size / forecast_gallons)) if len(n_arr) else 0.0,
         "months_cap_bound": int(sum(1 for r in rows if r.get("cap_bound"))),
+        "months_ratio_clipped": int(sum(1 for r in rows if r.get("h_raw", 0.0) > r.get("h", 0.0) + 1e-12)),
         "months_cash_bound": int(sum(1 for r in rows if r.get("cash_bound"))),
         "max_cash_stress_usd": float(max((r["cash_stress"] for r in rows), default=0.0)),
         "policy_breaches": breaches,

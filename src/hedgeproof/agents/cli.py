@@ -5,10 +5,11 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import subprocess
 import sys
 from contextlib import ExitStack
 
-from hedgeproof.config import RESULTS_DIR, VAR_DIR, load_settings
+from hedgeproof.config import REPO_ROOT, RESULTS_DIR, VAR_DIR, load_settings
 from hedgeproof.records import new_id, utc_now
 
 
@@ -16,6 +17,18 @@ def _spend():
     from hedgeproof.agents.spend import SpendController
 
     return SpendController(VAR_DIR / "spend.db", load_settings().runtime)
+
+
+def code_version() -> str:
+    """The git commit of the code that made a run, marked if tracked files had uncommitted edits."""
+    try:
+        head = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=REPO_ROOT, capture_output=True, text=True, timeout=10)
+        dirty = subprocess.run(["git", "status", "--porcelain", "--untracked-files=no"], cwd=REPO_ROOT, capture_output=True, text=True, timeout=10)
+    except (OSError, subprocess.SubprocessError):
+        return "unknown"
+    if head.returncode != 0:
+        return "unknown"
+    return head.stdout.strip() + (" + uncommitted edits" if dirty.stdout.strip() else "")
 
 
 def cmd_run(args: argparse.Namespace) -> None:
@@ -61,6 +74,8 @@ def cmd_run(args: argparse.Namespace) -> None:
         initial = {"requested_contracts": args.request_contracts} if args.workflow == "execute" and args.request_contracts is not None else {}
         state = wf.run(args.workflow, initial)
         trace = wf.trace(args.workflow, state, started)
+        trace.update({"code_version": code_version(), "provider": rt["provider"]["name"] if args.agents == "live" else None,
+                      "effort": (args.effort or rt["models"]["effort"]) if args.agents == "live" else None})
         out_dir = RESULTS_DIR / "runs" if args.agents == "live" else VAR_DIR / "runs"
         path = save_trace(trace, out_dir)
         print(f"\nRESULT: {state.get('status')} · {state.get('reason', '')}")

@@ -1,6 +1,6 @@
 # HedgeProof build state
 
-Updated: Sat 24 Oct 2026, 1:37 PM IST. Labels: PLANNED, IMPLEMENTED, VERIFIED (command output or inspected file), BLOCKED, DEFERRED.
+Updated: Sat 24 Oct 2026, 2:46 PM IST. Labels: PLANNED, IMPLEMENTED, VERIFIED (command output or inspected file), BLOCKED, DEFERRED.
 
 ## Event facts
 
@@ -13,7 +13,9 @@ Updated: Sat 24 Oct 2026, 1:37 PM IST. Labels: PLANNED, IMPLEMENTED, VERIFIED (c
 - Working branch: `claude/wonderful-keller-enn1fn`; integrates into `main` by pull request (D-019).
 - PRs #1, #2 and #3 are merged. Around 1:10 PM IST `main` and this branch were **force-pushed with rewritten history**: Claude-authored commits now show Nikshep as author (D-036). The original commits are kept locally in `backup/original-claude-history` (not pushed).
 - Nikshep's commits on `main`: `102f55e` (Indian scenario on SYNTHETIC-INDIA data, validators, Vercel showcase, OpenAI-format OpenRouter client, docs) and `234e927` (closes DB handles in his tests).
-- On the branch for PR #4: OpenRouter provider for the agent workflow (D-034), Vercel showcase hardening (D-035), docs.
+- PR #4 (OpenRouter provider D-034, Vercel hardening D-035) is merged: `main` = `65b980c`.
+- The rewritten history shares no commit with the original (even "Initial commit" changed), so clones made before 1:10 PM cannot `git pull` ("refusing to merge unrelated histories"). The demo laptop's clone was reset to `origin/main` (~2:00 PM), its old state kept on a local branch `laptop-old-history`. Teammates with older clones must save their own work, then do the same.
+- On the branch for PR #5: research-loop fixes found by the first live run (D-037).
 
 ## Environment facts
 
@@ -24,6 +26,8 @@ Updated: Sat 24 Oct 2026, 1:37 PM IST. Labels: PLANNED, IMPLEMENTED, VERIFIED (c
 | Demo laptop (Windows 11): WSL, Docker Desktop 29.9.2, checks A/B/C, Git, uv, Python 3.12.15 | Reported PASSED by Saicharan |
 | Demo laptop: `uv sync` and `uv run hedgeproof sandbox-build` | Reported PASSED by Saicharan (12:45 IST) |
 | Demo laptop: `uv run pytest -q` | PR #1 code: 24 failed, 32 passed (WinError 32). After PR #2: **64 passed**, reported by Saicharan (~1:00 PM IST). Real-data tests (PR #3) not yet run there |
+| Demo laptop: `uv run hedgeproof smoke` on `65b980c` | PASSED (output pasted by Saicharan, ~2:15 PM): OpenRouter lists `anthropic/claude-haiku-5.5` at $0.10 / $0.50 and `anthropic/claude-sonnet-5.5` at $2.00 / $10.00 per million tokens, at or below the configured prices; a plain call and a strict-tool + effort call were both accepted (current settings kept); cost $0.000082 |
+| Demo laptop: `uv run pytest -q` after the reset to `65b980c` | Not yet reported |
 | Dependencies resolve and lock (77 packages, `uv.lock`) | VERIFIED |
 
 ## Data version (HISTORICAL MARKET REPLAY, EIA public data)
@@ -45,6 +49,7 @@ Updated: Sat 24 Oct 2026, 1:37 PM IST. Labels: PLANNED, IMPLEMENTED, VERIFIED (c
 - **Development baselines** (`uv run hedgeproof baseline`, `results/development_baselines.json`, n = 9 scored positions, Feb-Nov 2017 excluding June): budget-error standard deviation no hedge $36,648, fixed 50% $23,615, fixed script OLS-36 $20,053; BaR95 $64,932 / $41,210 / $31,721; 0 policy breaches. The raw OLS ratio was 1.05-1.10 every month, so the 75% cap bound (7 contracts). 90% block-bootstrap interval for the change in standard deviation, OLS-36 vs no hedge: -$23,217 to -$8,112; vs fixed 50%: -$6,290 to -$546. Tiny sample; development data only.
 - **Rehearsal flow on real data** (cloud, scripted test double, rehearsal DB): research → coder (repair after a failed zero-variance test) → critique → stopped at development; execution: 15-contract request BLOCKED (EXPOSURE_CAP; CASH_STRESS_CAP $412,650 > $250,000), 5 contracts approved with the operator code, lost acknowledgement reconciled by key, 1 paper fill at $2.626 on 1 Apr 2024.
 - Deterministic evaluation (SYNTHETIC fixtures): faults 8/8, valid 8/8; gate ablation 5 violating orders gate-off vs 0 gate-on (`results/EVAL_SUMMARY.md`).
+- **First live research run** `RUN-e56d7478db40` (demo laptop, rehearsal service on real EIA data, lineage `REHEARSAL-LIVE1`, `anthropic/claude-haiku-5.5` via OpenRouter, effort medium, code `65b980c`; console output pasted by Saicharan ~2:38 PM): 21 model calls, 68,906 input and 9,469 output tokens, **measured cost $0.0093**. Research proposed OLS on 36 positions; the coder's estimator passed sandbox verification first time and its development backtest matched the fixed script (std $20,053); the critique ran all four diagnostics and asked to revise three times, but each revision resubmitted the same configuration, so the run ended **ABSTAIN** (candidate budget for the run used up). The research decision cited data-view names as evidence IDs; the trusted service removed and flagged them. Fixes: D-037. Trace: `results/runs/RUN-e56d7478db40.json` on the laptop, not yet in the repository.
 
 ## Components
 
@@ -58,18 +63,19 @@ Updated: Sat 24 Oct 2026, 1:37 PM IST. Labels: PLANNED, IMPLEMENTED, VERIFIED (c
 | Database connection lifecycle (Windows) | IMPLEMENTED, VERIFIED (Linux with Windows-like guard; Windows 64 passed reported) | `tests/test_lifecycle.py` |
 | Sandbox runner | IMPLEMENTED, VERIFIED (cloud container) | `hedgeproof sandbox-check` |
 | Spend controller | IMPLEMENTED, VERIFIED (unit and mock-transport tests, no API calls) | `tests/test_spend.py`, `tests/test_claude_client.py` |
-| Claude client (live) | IMPLEMENTED; **not yet exercised** (no API key or funding) | — |
-| Five-role LangGraph workflow | IMPLEMENTED, VERIFIED with the labelled scripted test double (synthetic and real data) | `tests/test_workflow.py`; rehearsal run above |
+| Claude client (live, OpenRouter) | IMPLEMENTED, VERIFIED live on the demo laptop (smoke test and one research run) | outputs pasted by Saicharan |
+| Five-role LangGraph workflow | IMPLEMENTED, VERIFIED with the labelled scripted test double (synthetic and real data) and in one live run (research workflow) | `tests/test_workflow.py`; runs above |
+| Research-loop fixes from the live run (duplicate configurations refused, explained diagnostics, last-turn warning, HALT on unexpected errors, code version in traces) | IMPLEMENTED, VERIFIED offline | `tests/test_research_loop.py` |
 | Dashboard | IMPLEMENTED, VERIFIED in headless Chromium on real data (no exceptions) | screenshots in the cloud session |
-| OpenRouter provider (Anthropic SDK + base URL, key as Bearer, price check, feature probes) | IMPLEMENTED, VERIFIED offline (mock transport); live smoke test pending on the laptop | `tests/test_claude_client.py` |
+| OpenRouter provider (Anthropic SDK + base URL, key as Bearer, price check, feature probes) | IMPLEMENTED, VERIFIED offline (mock transport) and live (smoke test on the laptop) | `tests/test_claude_client.py` |
 | Indian scenario (Nikshep): configs, loader, SYNTHETIC-INDIA market, tests | IMPLEMENTED on synthetic data only (no Indian market data files exist) | `tests/test_india*.py` |
 | Vercel showcase (Nikshep), hardened | IMPLEMENTED; deployment status unknown | `docs/VERCEL_DEPLOYMENT.md` |
-| Model-dependent trials (E1-E3, single-agent, fixed script) | PLANNED (needs the OpenRouter key on the laptop) | |
+| Model-dependent trials (E1-E3, single-agent, fixed script) | PLANNED (key now works on the laptop) | |
 | GASB-informed diagnostic (stretch) | DEFERRED | |
 
 ## Tests
 
-- `uv run pytest -q`: **136 passed** in the cloud container (24 Oct, about 1:35 PM IST), including Nikshep's Indian-scenario and validator tests, the Docker sandbox tests and 4 new OpenRouter/deployment checks, with the Windows-like file-locking guard active. No API calls.
+- `uv run pytest -q`: **141 passed** in the cloud container (24 Oct, about 2:45 PM IST), including the Docker sandbox tests, Nikshep's Indian-scenario and validator tests, and 5 new research-loop tests, with the Windows-like file-locking guard active. No API calls.
 
 ## Config hashes (SHA-256 of canonical JSON of parsed TOML)
 
@@ -83,21 +89,21 @@ Updated: Sat 24 Oct 2026, 1:37 PM IST. Labels: PLANNED, IMPLEMENTED, VERIFIED (c
 
 - Budget: $10 total ($7 dev / $3 final), $1 provisional per run (D-018).
 - Provider: **OpenRouter**. The team reports buying **$10 of OpenRouter credit** (24 Oct, ~1:20 PM IST). The usable balance after any purchase fee is **not yet confirmed** (read it on OpenRouter's credits page). Anthropic Console balance: $0, unused.
-- OpenRouter key on the laptop (`OPENROUTER_API_KEY`): **not yet set**. Smoke test (`uv run hedgeproof smoke`): **not run**. OpenRouter prices and feature support (strict tools, effort): from web search only, **to be verified by the smoke test**.
-- Measured application spend so far: **$0.00** (no application API calls; every agent run so far was the scripted test double).
+- OpenRouter key on the laptop (`OPENROUTER_API_KEY`): set (the smoke test authenticated). Prices and feature support (strict tools, effort): **verified by the smoke test** (see Environment facts).
+- Measured application spend so far: **$0.0094** committed in the laptop's ledger (`var/spend.db`): smoke test $0.000082 + first live run $0.0093. Remaining in the app's allowance: $9.9906 ($7 dev / $3 final phases). OpenRouter's activity page is the authoritative bill.
 
 ## Research state
 
 - Experiment `HP-FINAL`: not started (0 candidates, 0 repairs). Validation has not been consulted for any candidate. Holdout: **SEALED** (never opened). Rehearsal lineages on real data stop at development; TEST lineages use synthetic data only.
+- Laptop rehearsal database: `REHEARSAL-LIVE1` has 3 candidates (all OLS, 36 positions; development only).
 
 ## Blockers
 
-1. **OpenRouter key on the laptop** (needed only for live agent runs): create the key, set `OPENROUTER_API_KEY`, run `uv run hedgeproof smoke`.
-2. **Attribution after the force-push** (D-036): team decision needed.
+1. **Attribution after the force-push** (D-036): team decision needed.
+2. OpenRouter usable balance after any purchase fee: not yet reported (the app's allowance stays $10 until it is).
 
 ## Next
 
-1. Merge PR #4; laptop: `git pull`, `uv sync`, `uv run pytest -q`.
-2. Laptop: set the OpenRouter key (never in chat), run `uv run hedgeproof smoke`, share its output (it prints no key).
-3. One measured live research run with the practice model (rehearsal lineage), then one with the research model; record cost and runtime.
-4. Rehearse the checkpoint-1 demo (`docs/DEMO_GUIDE.md`).
+1. Merge PR #5; laptop: `git pull`, restart the trusted service (it holds the old code), second practice run on a fresh lineage (`REHEARSAL-LIVE2`); attach both traces from `results/runs/`.
+2. One run with the research model (`anthropic/claude-sonnet-5.5`); record cost and runtime.
+3. Rehearse the checkpoint-1 demo (`docs/DEMO_GUIDE.md`).
