@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import os
+
 import pytest
 
 from hedgeproof.engine import VETTED_SOURCES
@@ -51,3 +53,19 @@ def test_windows_streamed_one_at_a_time_and_results_ordered():
     job = SB.run_job(VETTED_SOURCES["ols"], {}, [("2017-02", w), ("2017-03", w[1:] + w[:1])])
     assert job["loaded"] and set(job["replies"]) == {"2017-02", "2017-03"}
     assert all(rep["ok"] for rep in job["replies"].values())
+
+
+@pytest.mark.skipif(os.name == "nt", reason="uses a POSIX shell script as a stand-in docker binary")
+def test_unavailable_reason_distinguishes_stopped_docker_from_missing_image(tmp_path):
+    def fake_docker(stderr: str) -> str:
+        p = tmp_path / f"docker-{abs(hash(stderr))}"
+        p.write_text(f"#!/bin/sh\necho '{stderr}' >&2\nexit 1\n")
+        p.chmod(0o755)
+        return str(p)
+
+    stopped = DockerSandbox(docker=fake_docker("Cannot connect to the Docker daemon. Is the docker daemon running?"))
+    ok, detail = stopped.available()
+    assert not ok and detail.startswith("Docker is not reachable (start Docker Desktop)")
+    missing = DockerSandbox(docker=fake_docker("Error: No such image: hedgeproof-sandbox:1"))
+    ok, detail = missing.available()
+    assert not ok and "not built" in detail
