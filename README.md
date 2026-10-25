@@ -8,7 +8,7 @@ ChronoForge 2026 final round · theme *Cities of the Future* · track *Agentic A
 
 ## Demo video
 
-Not recorded yet. The Google Drive link will be added here after recording (see `docs/DEMO_GUIDE.md`).
+**Google Drive link: to be added by the team** (recorded from `docs/DEMO_GUIDE.md` → Video script). If this line is still here, the video link was not added before the deadline.
 
 ## The problem
 
@@ -22,7 +22,9 @@ A city bus agency buys diesel every month but fixes its fuel budget months earli
 - **Trusted code computes every number**: positions, cash flows, budget error, variance, Budget-at-Risk, caps and the bootstrap intervals. Agents never report their own metrics.
 - **The Mandate-Bound Evidence Gate** (our core contribution) lets a paper order reach the simulator only if it matches a verified evidence record (data, estimator, evaluation and policy hashes), passes every agency rule, and carries a human approval of that exact order. Missing or changed evidence, a breached rule or an unknown state blocks the order with a reason. A blocked order is never resized.
 
-## Status (24 Oct 2026, IST)
+## Status at submission (25 Oct 2026, IST)
+
+**In one paragraph:** the full pipeline is built and tested: real EIA data with a verified contract-roll rule, a trusted quant engine, the Mandate-Bound Evidence Gate (G01-G12) with operator-coded approvals and a paper simulator that reconciles a lost acknowledgement, a Docker sandbox for AI-written code, a dashboard, and five AI agent roles that ran **live** three times on Claude Haiku 5.5 for about three US cents in total. **Not completed before the deadline:** the real `HP-FINAL` research run, trusted validation scoring, the single opening of the sealed 2020-2024 holdout, and the single-agent comparison (E1-E3). The holdout was never opened, so this repository contains **no validation, holdout or comparative performance results**.
 
 | Component | Status |
 |---|---|
@@ -31,10 +33,12 @@ A city bus agency buys diesel every month but fixes its fuel budget months earli
 | Quant engine: sizing, budget-error identity, variance, BaR95, baselines, paired block bootstrap | Implemented; financial invariants pass |
 | Trusted service: gate G01-G12, operator-coded approvals, paper simulator, reconciliation, holdout lock, evidence packets | Implemented; 16 deterministic cases pass on SYNTHETIC fixtures |
 | Docker sandbox for generated code | Implemented; isolation verified through the runner (cloud container) |
-| Five-role LangGraph workflow with spend controller | Implemented; verified with the labelled scripted test double and in two live runs (Claude Haiku 5.5 via OpenRouter, 21 model calls each, $0.0093 and $0.0111 measured; both ended ABSTAIN; traces in `results/runs/`; D-037, D-038) |
-| Streamlit dashboard | Implemented; verified in a headless browser |
+| Five-role LangGraph workflow with spend controller | Implemented; verified with the labelled scripted test double and in three live research runs on real data (Claude Haiku 5.5 via OpenRouter; see Tests and results) |
+| Streamlit dashboard | Implemented; verified in a headless browser and used live at checkpoint 1 |
 | Development baselines on EIA data | Done (labelled development-only, n = 9; see Tests and results) |
-| Live agent trials, validation scoring, holdout opening | First live practice run done; comparison trials, validation scoring and the holdout opening pending (see `docs/BUILD_STATE.md`) |
+| Real experiment `HP-FINAL`: validation scoring, freeze, single holdout opening | **Not run** (holdout sealed, never opened) |
+| Model-dependent trials E1-E3 and single-agent comparison | **Not run** |
+| Live order flow with the Risk and Execution agents | Verified with the scripted test double only (gate block, approval, lost acknowledgement, one fill); not run live |
 | GASB-informed effectiveness diagnostic (proposal stretch module) | Deferred |
 
 Live progress, test counts, hashes, spend and blockers: [`docs/BUILD_STATE.md`](docs/BUILD_STATE.md). Decisions and overrides: [`docs/DECISIONS.md`](docs/DECISIONS.md).
@@ -161,7 +165,19 @@ The team's application API budget is **$10 total**: $7 for development, rehearsa
 
 ## Tests and results
 
-`uv run pytest -q`: 71 deterministic tests (financial invariants, the 16 predefined cases, HTTP boundary tests, sandbox isolation, spend controller, database connection lifecycle, real-data checks, workflow with the scripted test double). Latest run and per-case evidence: [`results/EVAL_SUMMARY.md`](results/EVAL_SUMMARY.md). These check the enforcement code on SYNTHETIC inputs; they do not measure hedge performance.
+`uv run pytest -q`: **146 deterministic tests**, all passing in the cloud container with Docker (financial invariants, the 16 predefined cases, HTTP boundary tests, sandbox isolation, spend controller, model client against a mock provider, database connection lifecycle including a Windows file-locking emulation, real-data checks, research-loop fixes, workflow with the scripted test double). On the Windows demo laptop the suite ran with no assertion failures; 21 temporary-folder permission errors there were fixed by D-038. No test makes an API call.
+
+**Predefined cases** ([`results/EVAL_SUMMARY.md`](results/EVAL_SUMMARY.md), SYNTHETIC fixtures): faults caught **8 / 8**, valid cases handled **8 / 8**, zero policy-violating or duplicate orders. **Gate ablation:** with the gate bypassed in an isolated scratch simulator, 5 of 5 replayed bad orders would execute; with the gate on, 0. These check the enforcement code; they do not measure hedge performance.
+
+**Live AI research runs** (real EIA data, development split only, rehearsal lineages; model `anthropic/claude-haiku-5.5` through OpenRouter; costs measured by the spend controller from token usage):
+
+| Run | Model calls | Tokens in / out | Cost | Outcome and what it showed |
+|---|---|---|---|---|
+| [`RUN-e56d7478db40`](results/runs/RUN-e56d7478db40.json) | 21 | 68,906 / 9,469 | $0.0093 | ABSTAIN. The critic asked to revise three times and the coder resubmitted the same configuration, so the run used its 3 candidates. Fixed in trusted code: repeated configurations are refused and diagnostics explain identical results (D-037) |
+| [`RUN-3f1c27ab6816`](results/runs/RUN-3f1c27ab6816.json) | 21 | 80,797 / 10,968 | $0.0111 | ABSTAIN. Three genuinely different estimators (OLS 36, EWMA halflife 12, EWMA halflife 6 with shrinkage), each verified in the sandbox; the critic found that the 75% limit binds in all 9 development months, so development data cannot tell them apart (D-038) |
+| `RUN-b8f67926b9d2` (console output; trace on the demo laptop) | 21 | 93,940 / 7,583 | $0.0102 | ABSTAIN. Docker was not running: the trusted service refused to execute any AI-written code ("reduced autonomy"), the coder gave up three times, and the run stopped instead of skipping verification |
+
+Total application API spend at submission: **$0.0358** of the $10 allowance (including smoke tests). Two attempts with Claude Sonnet 5.5 were refused by OpenRouter before any charge (`402 billing_error`: the key's remaining allowance), so Haiku was used for every role (D-039).
 
 **Development baselines on EIA data** (`uv run hedgeproof baseline` → [`results/development_baselines.json`](results/development_baselines.json); data manifest `DM-f5615282b75c`; development split Feb-Nov 2017, **9 scored positions** because June 2017 has no Gulf Coast spot price on its exit day and is rejected, not patched):
 
@@ -179,7 +195,8 @@ The team's application API budget is **$10 total**: $7 for development, rehearsa
 - U.S. Gulf Coast spot is a proxy for an agency's invoice price; the 420,000-gallon forecast is a declared scenario. This is a historical U.S. data example, not a validated deployment for an Indian (or any) transit agency.
 - Fills, the one-session spot lag, costs and the cash-stress scenario are declared assumptions; EIA revisions are not available.
 - Small samples (10 / 23 / 49 positions): intervals are wide and we make no statistical-significance claims.
-- Model-dependent trials will be few and disclosed; recorded runs are replayed only with a visible label.
+- **Not completed:** the real `HP-FINAL` run (validation scoring, freeze, the single holdout opening) and the single-agent / E1-E3 comparison. There is therefore no evidence yet that the agents beat the fixed script; on development data the 75% limit binds every month, so they score the same.
+- Live agent runs used the smaller model (Claude Haiku 5.5) and covered research only; the Risk and Execution agents and the order flow were exercised with the labelled scripted test double.
 
 ## Repository map
 
@@ -198,4 +215,4 @@ The team's application API budget is **$10 total**: $7 for development, rehearsa
 - **Context:** MTA Fuel Hedge Program Report (27 Oct 2025).
 - **Related work:** TradingAgents (TauricResearch) and FinRobot (AI4Finance Foundation) for multi-agent finance and deterministic finance separated from LLM narration; HedgeProof's distinction is binding each paper order to the agency's exposure, a frozen policy and a reproducible evidence record. No code from those projects is used.
 - **Libraries:** Anthropic Python SDK, LangGraph, FastAPI, Uvicorn, Pydantic, Streamlit, NumPy, pandas, xlrd, httpx, pytest; Docker.
-- **AI assistance:** application code and documents were written with AI assistance from Claude Code (Anthropic) during the hacking period; Claude's commits carry the author `Claude <noreply@anthropic.com>`. The accepted proposal was drafted with AI assistance, as stated in it.
+- **AI assistance:** application code and documents were written with AI assistance from Claude Code (Anthropic) during the hacking period; Claude's commits carry the author `Claude <noreply@anthropic.com>`. On 24 Oct (~1:10 PM IST) the history of `main` was rewritten and earlier Claude-authored commits now show a teammate as author; pull requests #1 and #2 and `docs/DECISIONS.md` (D-036) record the original authorship. The accepted proposal was drafted with AI assistance, as stated in it.

@@ -87,9 +87,19 @@ Live screen (about 3 minutes):
 
 Likely questions: "Why did the agents abstain?" The 75% limit binds every development month, so development data cannot tell candidates apart; trusted validation scoring decides in the real run. "Why Haiku?" Measured: about one cent per run, and the larger model's requests did not fit the OpenRouter key's remaining allowance (D-039). "What do the agents add over a fixed script?" Not measured yet; on development data the fixed script scores the same, and we will say so.
 
-## Final script
+## Video script (final submission, at most 3 minutes)
 
-Written after the real HP-FINAL run, the single holdout opening and the final order flow.
+The real HP-FINAL run, the holdout opening and the single-agent comparison were not completed; the video shows what runs and says that plainly.
+
+Setup: Docker Desktop running; Terminal 1 `uv run hedgeproof serve --mode rehearsal` (operator code off screen); Terminal 2 `uv run hedgeproof dashboard`; Terminal 3 `uv run hedgeproof run research --lineage REHEARSAL-VID --agents scripted`. Record with Win+Alt+R (Xbox Game Bar) or OBS at 1080p. Never show environment variables or keys.
+
+1. **0:00-0:20 Problem** (Saicharan, on the dashboard header): "A city bus agency fixes its fuel budget before it knows the diesel price. HedgeProof lets AI agents research a fuel hedge, independent code checks every number and rule, and a human approves the exact order before a simulated order can proceed." Point at REHEARSAL, HISTORICAL MARKET REPLAY, the policy hash and holdout SEALED.
+2. **0:20-0:50 Data and baselines** (Nikshep, Test tab): real EIA prices, splits 10 / 23 / 49, the June 2017 row rejected rather than patched; development budget-error spread $36,648 no hedge, $23,615 fixed 50%, $20,053 regression hedge, "9 months, not a claim".
+3. **0:50-1:30 Agents** (Kruthik, Research tab): the LIVE AI RUN `RUN-3f1c27ab6816`: three different estimators, each verified in the sandbox, the critic explaining that the 75% limit binds every month, the run stopping instead of overclaiming; then the scripted run's failed sandbox test and repair (say "test double").
+4. **1:30-2:20 Gate and order** (Lohith): Check rules → "Check a 150% request" → BLOCKED (exposure cap, cash-stress cap), nothing resized. Then Simulate → Fault injection: arm a lost acknowledgement; Terminal 3 `uv run hedgeproof run execute --lineage REHEARSAL-VID --agents scripted --request-contracts 15`; Approve the 5-contract order with the operator code (keep the code off screen); Terminal 3 shows the status query by key; Simulate shows exactly one fill.
+5. **2:20-2:50 Evidence and honesty** (Saicharan): 16 predefined cases 8 / 8 faults and 8 / 8 valid, gate ablation 5 bad orders without the gate vs 0 with it, three live runs for about three US cents. "Not done: the real experiment with validation scoring, the single holdout opening and the single-agent comparison. Paper trading only; U.S. data as a proxy."
+
+Upload: Google Drive → New → File upload → right-click the file → Share → General access "Anyone with the link" (Viewer) → Copy link. Paste it in `README.md` under "Demo video" (on GitHub: open README.md → pencil icon → replace the placeholder line → Commit changes).
 
 ## Judge Q&A (answers get measured numbers once they exist)
 

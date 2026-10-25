@@ -139,7 +139,12 @@ class DockerSandbox:
         try:
             r = subprocess.run([self.docker, "image", "inspect", self.image], capture_output=True, text=True, timeout=15)
             ok = r.returncode == 0
-            detail = "Docker sandbox ready" if ok else f"image {self.image} not built (run: uv run hedgeproof sandbox-build)"
+            if ok:
+                detail = "Docker sandbox ready"
+            elif "no such" in (r.stderr or "").lower():
+                detail = f"image {self.image} not built (run: uv run hedgeproof sandbox-build)"
+            else:  # a stopped Docker Desktop also fails `image inspect`; say so instead of "not built"
+                detail = f"Docker is not reachable (start Docker Desktop): {(r.stderr or '').strip()[:120]}"
         except (OSError, subprocess.TimeoutExpired) as e:
             ok, detail = False, f"Docker unavailable: {type(e).__name__}"
         self._avail = (now, ok, detail)

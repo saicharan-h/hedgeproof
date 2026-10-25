@@ -1,6 +1,12 @@
 # HedgeProof build state
 
-Updated: Sat 24 Oct 2026, 9:17 PM IST. Labels: PLANNED, IMPLEMENTED, VERIFIED (command output or inspected file), BLOCKED, DEFERRED.
+Updated: Sun 25 Oct 2026, 9:33 AM IST. Labels: PLANNED, IMPLEMENTED, VERIFIED (command output or inspected file), BLOCKED, DEFERRED.
+
+## Final submission state
+
+- Submitted as it stands at the deadline (D-040): `main` after PR #10.
+- Done and verified: EIA data with the roll rule, trusted engine, gate G01-G12 with operator-coded approvals, paper simulator with reconciliation, Docker sandbox, dashboard, 16 cases (8/8 faults, 8/8 valid), gate ablation (5 vs 0), 146 tests passing in the cloud with Docker, three live Haiku research runs (about three US cents).
+- **Not done:** real `HP-FINAL` run, validation scoring and freeze; the single holdout opening (holdout **SEALED**, never opened); E1-E3 single-agent comparison; a live run of the Risk and Execution agents; the demo video link (the team records and adds it).
 
 ## Event facts
 
@@ -52,6 +58,7 @@ Updated: Sat 24 Oct 2026, 9:17 PM IST. Labels: PLANNED, IMPLEMENTED, VERIFIED (c
 - Deterministic evaluation (SYNTHETIC fixtures): faults 8/8, valid 8/8; gate ablation 5 violating orders gate-off vs 0 gate-on (`results/EVAL_SUMMARY.md`).
 - **First live research run** `RUN-e56d7478db40` (demo laptop, rehearsal service on real EIA data, lineage `REHEARSAL-LIVE1`, `anthropic/claude-haiku-5.5` via OpenRouter, effort medium, code `65b980c`; console output pasted by Saicharan ~2:38 PM): 21 model calls, 68,906 input and 9,469 output tokens, **measured cost $0.0093**. Research proposed OLS on 36 positions; the coder's estimator passed sandbox verification first time and its development backtest matched the fixed script (std $20,053); the critique ran all four diagnostics and asked to revise three times, but each revision resubmitted the same configuration, so the run ended **ABSTAIN** (candidate budget for the run used up). The research decision cited data-view names as evidence IDs; the trusted service removed and flagged them. Fixes: D-037. Trace: `results/runs/RUN-e56d7478db40.json` (attached by Saicharan; committed as attached, with Windows line endings normalized to LF by `.gitattributes`).
 - **Second live research run** `RUN-3f1c27ab6816` (code `55089cb` with the D-037 fixes, lineage `REHEARSAL-LIVE2`, same model and settings): 21 model calls, 80,797 input and 10,968 output tokens, **$0.0111**, 86 s. Research cited only real source IDs. Revisions now changed the configuration: OLS 36 → EWMA halflife 12 (the coder declined the critique's "shrink toward 0.5" because it would fail the known-answer test) → EWMA halflife 6 with 5% shrink. Each verified first time; development std stayed $20,053 because the ratio was clipped at 75% in all 9 months, which the critique stated, yet it kept choosing revise, so the run ended **ABSTAIN** (candidate budget used). Prompt clarified (D-038). Trace: `results/runs/RUN-3f1c27ab6816.json`.
+- **Third live research run** `RUN-b8f67926b9d2` (lineage `REHEARSAL-CP2`, Haiku, ~9:30 PM 24 Oct; console output pasted by Saicharan, trace stays on the laptop): 21 calls, 93,940 / 7,583 tokens, **$0.0102**, ABSTAIN. Docker was not reachable, so the trusted service refused every verification (`SANDBOX_UNAVAILABLE`, "reduced autonomy"); the coder gave up three times and the run stopped without running unverified code. The message then said "image not built"; it now says when Docker is not running (D-040).
 
 ## Components
 
@@ -77,7 +84,7 @@ Updated: Sat 24 Oct 2026, 9:17 PM IST. Labels: PLANNED, IMPLEMENTED, VERIFIED (c
 
 ## Tests
 
-- `uv run pytest -q`: **141 passed** in the cloud container (24 Oct, about 2:45 PM IST), including the Docker sandbox tests, Nikshep's Indian-scenario and validator tests, and 5 new research-loop tests, with the Windows-like file-locking guard active. No API calls.
+- `uv run pytest -q`: **146 passed** in the cloud container (25 Oct, about 9:40 AM IST), including the Docker sandbox tests, Nikshep's Indian-scenario and validator tests, the research-loop and smoke-probe tests, with the Windows-like file-locking guard active. No API calls.
 
 ## Config hashes (SHA-256 of canonical JSON of parsed TOML)
 
@@ -93,7 +100,7 @@ Updated: Sat 24 Oct 2026, 9:17 PM IST. Labels: PLANNED, IMPLEMENTED, VERIFIED (c
 - Provider: **OpenRouter**. The team reports buying **$10 of OpenRouter credit** (24 Oct, ~1:20 PM IST). The usable balance after any purchase fee is **not yet confirmed** (read it on OpenRouter's credits page). Anthropic Console balance: $0, unused.
 - OpenRouter key on the laptop (`OPENROUTER_API_KEY`): set (the smoke test authenticated). Prices and feature support (strict tools, effort): **verified by the smoke test** (see Environment facts).
 - Sonnet 5.5 (~4:45-5:00 PM): small probes pass, but every research-shaped request was refused with `402 billing_error` ("can only afford 1273" of 2500 tokens): the key's remaining allowance, not the code. Team decision: Haiku 5.5 for all roles (D-039).
-- Measured application spend so far: **$0.0205** committed in the laptop's ledger (`var/spend.db`): smoke test $0.000082 + run 1 $0.0093 + run 2 $0.0111. Remaining in the app's allowance: $9.9795 ($7 dev / $3 final phases). OpenRouter's activity page is the authoritative bill.
+- Measured application spend at submission: **$0.0358** committed in the laptop's ledger (`var/spend.db`): three Haiku research runs ($0.0093 + $0.0111 + $0.0102) plus smoke tests; two Sonnet research attempts were refused before any charge. Remaining in the app's allowance: $9.9642. OpenRouter's activity page is the authoritative bill.
 
 ## Research state
 
@@ -105,8 +112,8 @@ Updated: Sat 24 Oct 2026, 9:17 PM IST. Labels: PLANNED, IMPLEMENTED, VERIFIED (c
 1. **Attribution after the force-push** (D-036): team decision needed.
 2. OpenRouter usable balance after any purchase fee: not yet reported (the app's allowance stays $10 until it is).
 
-## Next
+## After submission (not done)
 
-1. Laptop: `git pull`; `uv run hedgeproof smoke` (prints the key's remaining allowance); Haiku research run `REHEARSAL-CP2`; checkpoint 2 at 10:00 PM (`docs/DEMO_GUIDE.md`).
-2. After checkpoint 2: real `HP-FINAL` research run on the final service (Haiku; at most 2 runs, 6 candidates), trusted validation scoring and freeze; correctness checklist; single holdout opening; final order flow.
-3. Single-agent comparison and E1-E3 trials (PLANNED, not started), video, final README.
+1. Real `HP-FINAL` research run (Haiku; at most 2 runs, 6 candidates), trusted validation scoring and freeze; correctness checklist; single holdout opening; final order flow.
+2. E1-E3 single-agent comparison; live Risk and Execution agents.
+3. Commit the third run's trace from the laptop (`var/runs/RUN-b8f67926b9d2.json`).
