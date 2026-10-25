@@ -8,7 +8,7 @@ ChronoForge 2026 final round · theme *Cities of the Future* · track *Agentic A
 
 ## Demo video
 
-**Google Drive link: to be added by the team** (recorded from `docs/DEMO_GUIDE.md` → Video script). If this line is still here, the video link was not added before the deadline.
+**Google Drive link: https://drive.google.com/file/d/1bmmWBc9U8wPjjZzHx-BIUudGHLy_Hgi5/view?usp=sharing
 
 ## The problem
 
